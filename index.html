@@ -820,7 +820,7 @@ function viewSettings(V) {
   V.innerHTML = `
     <div class="card-box">
       <label class="toggle"><span><b>Keep the music going</b><br><span class="muted small">When your queue ends, continue with similar songs</span></span><input type="checkbox" id="setAuto" ${S.settings.autoplay ? 'checked' : ''}></label>
-      <label class="field" style="margin-top:14px"><span>Audius API key (optional). Only needed if Audius ever starts requiring one; free from audius.co/settings → Developer apps</span><input type="password" id="setKey" value="${esc(S.settings.apiKey)}" placeholder="Leave empty" autocomplete="off"></label>
+      <label class="field" style="margin-top:14px"><span>Audius API key (optional). Only needed if Audius ever starts requiring one; free from audius.co/settings → Developer apps</span><input type="text" id="setKey" spellcheck="false" autocapitalize="off" value="${esc(S.settings.apiKey)}" placeholder="Leave empty" autocomplete="off"></label>
     </div>
     <div class="card-box">
       <b>Backup</b>
