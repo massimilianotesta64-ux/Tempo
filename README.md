@@ -7,7 +7,8 @@ Tempo is a web app (PWA) that installs on Android and iPhone from the browser. N
 - Plays **your own music files** (MP3, FLAC, M4A, WAV, OGG), offline, stored on the phone
 - **Synced lyrics** from LRCLIB that scroll with the song; tap a line to jump to it. The current line also shows in the mini player
 - **Playlists**: create, rename, reorder, delete; add any song (streamed or your own) via the ⋯ menu
-- **Radio**: live Italian radio stations (RTL 102.5, Radio Deejay, Rai and many more), browse by genre, search by name, save favourites to Your stations. Stations play their own ads and presenters
+- **Four languages**: English, Italian, Spanish, Portuguese. Tap the flag at the top to switch. The language also sets the radio countries and adds a music section in that language on Home
+- **Radio**: live stations for the chosen language (Italian: Italy · Spanish: Spain, Mexico, Argentina, Colombia · Portuguese: Portugal, Brazil · English: UK, Ireland, USA). Browse by genre, search by name, save favourites to Your stations. Stations play their own ads and presenters
 - **Liked songs**, recently played, queue (play next / add to queue / remove)
 - Shuffle, repeat (all / one), lock-screen and headphone controls
 - **Keeps the music going**: when the queue ends, similar songs carry on (can be switched off in Settings)

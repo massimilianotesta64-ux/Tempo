@@ -95,6 +95,10 @@ h2{font-size:19px;margin:22px 0 10px;font-weight:750;letter-spacing:-.01em}
 .tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--tabs-h) + var(--sab));padding-bottom:var(--sab);background:rgba(11,13,16,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;justify-content:center;border-top:1px solid #16191e;z-index:20}
 .tabs button{flex:1;max-width:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--muted);font-weight:600}
 .tabs button.on{color:var(--text)}
+.tabs button b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 2px}
+.lang-btn{font-size:22px;line-height:1}
+.lang-opt .fl{font-size:24px;width:28px;text-align:center}
+.lang-opt.on{color:var(--accent)}
 /* Mini player */
 .mini{position:fixed;left:8px;right:8px;bottom:calc(var(--tabs-h) + var(--sab) + 6px);max-width:744px;margin:0 auto;height:var(--mini-h);background:var(--panel2);border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 8px;z-index:21;box-shadow:0 6px 24px rgba(0,0,0,.5);overflow:hidden;cursor:pointer}
 .mini .art{width:46px;height:46px;border-radius:6px}
@@ -182,6 +186,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
   <header class="top">
     <button id="backBtn" class="icon-btn hidden" aria-label="Back"></button>
     <h1 id="viewTitle">Home</h1>
+    <button id="langBtn" class="icon-btn lang-btn" aria-label="Language"></button>
     <button id="settingsBtn" class="icon-btn" aria-label="Settings"></button>
   </header>
   <main id="view"></main>
@@ -196,10 +201,10 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
 </div>
 
 <nav class="tabs">
-  <button data-tab="home" class="on"><span data-ico="home"></span>Home</button>
-  <button data-tab="search"><span data-ico="search"></span>Search</button>
-  <button data-tab="radio"><span data-ico="radio"></span>Radio</button>
-  <button data-tab="library"><span data-ico="library"></span>Your Library</button>
+  <button data-tab="home" class="on"><span data-ico="home"></span><b data-t="tab_home">Home</b></button>
+  <button data-tab="search"><span data-ico="search"></span><b data-t="tab_search">Search</b></button>
+  <button data-tab="radio"><span data-ico="radio"></span><b data-t="tab_radio">Radio</b></button>
+  <button data-tab="library"><span data-ico="library"></span><b data-t="tab_library">Your Library</b></button>
 </nav>
 
 <section id="player" class="player" aria-label="Now playing">
@@ -209,9 +214,9 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
     <button class="icon-btn" id="pMore" aria-label="More"></button>
   </div>
   <div class="seg" id="pSeg">
-    <button data-pane="song">Song</button>
-    <button data-pane="lyrics">Lyrics</button>
-    <button data-pane="queue">Queue</button>
+    <button data-pane="song" data-t="seg_song">Song</button>
+    <button data-pane="lyrics" data-t="seg_lyrics">Lyrics</button>
+    <button data-pane="queue" data-t="seg_queue">Queue</button>
   </div>
   <div class="pbody" id="pBody"></div>
   <div class="pinfo">
@@ -221,7 +226,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
   <div class="seek">
     <input type="range" id="pSeek" min="0" max="1000" value="0" aria-label="Seek">
     <div class="times"><span id="pCur">0:00</span><span id="pDur">0:00</span></div>
-    <div class="livebar"><i></i>LIVE RADIO</div>
+    <div class="livebar"><i></i><span data-t="live_radio">LIVE RADIO</span></div>
   </div>
   <div class="controls">
     <button class="icon-btn side" id="pShuffle" aria-label="Shuffle"></button>
@@ -307,7 +312,7 @@ const S = {
   liked: store.get('liked', []),                  // [track]
   history: store.get('history', []),              // [track]
   stations: store.get('stations', []),            // favourite radio stations
-  settings: Object.assign({ apiKey: '', autoplay: true, pane: 'song' }, store.get('settings', {})),
+  settings: Object.assign({ apiKey: '', autoplay: true, pane: 'song', lang: null, radioCountry: {} }, store.get('settings', {})),
   queue: [], original: null, qi: -1, from: '',
   shuffle: store.get('shuffle', false), repeat: store.get('repeat', 'off'),
   local: [],                                      // local track metas
@@ -320,6 +325,218 @@ const save = {
   stations: () => store.set('stations', S.stations),
   settings: () => store.set('settings', S.settings)
 };
+/* ---------------- Languages ---------------- */
+const LANGS = [['en', '🇬🇧', 'English'], ['it', '🇮🇹', 'Italiano'], ['es', '🇪🇸', 'Español'], ['pt', '🇵🇹', 'Português']];
+const I18N = {
+  en: {
+    tab_home: 'Home', tab_search: 'Search', tab_radio: 'Radio', tab_library: 'Your Library',
+    seg_song: 'Song', seg_lyrics: 'Lyrics', seg_queue: 'Queue', live_radio: 'LIVE RADIO',
+    now_playing: 'Now playing', playing_from: 'Playing from {x}',
+    good_night: 'Good night', good_morning: 'Good morning', good_afternoon: 'Good afternoon', good_evening: 'Good evening',
+    recently_played: 'Recently played', browse_genre: 'Browse by genre', trending_week: 'Trending this week', trending: 'Trending', play_all: 'Play all',
+    popular_playlists: 'Popular playlists', rising_underground: 'Rising underground', lang_picks: '',
+    home_note: 'Streaming catalogue from Audius, a free platform where independent artists share their music. Add your own files in Your Library.',
+    no_tracks_genre: 'No tracks found for this genre', no_playlists: 'No playlists right now', all: 'All',
+    offline_music: "Couldn't reach the music catalogue. Check your connection, then tap a genre to retry.<br><br>Your own files still play offline.",
+    search_title: 'Search', search_ph: 'Songs, artists, playlists', browse_genres: 'Browse genres', in_library: 'In your library', your_library: 'Your library',
+    songs: 'Songs', playlists: 'Playlists', no_songs: 'No songs found',
+    radio_title: 'Radio', radio_stations_of: 'Stations from {x}', radio_search_ph: 'Search stations in {x}', your_stations: 'Your stations', popular_in: 'Popular in {x}', results: 'Results',
+    radio_note: "Live stations from the Radio Browser directory. Radio stations play their own ads and presenters, which Tempo can't remove. Tap the heart on a station to add it to Your stations.",
+    no_stations_name: 'No stations found with that name', no_stations_cat: 'No stations found for this category',
+    radio_offline: "Couldn't reach the radio directory. Check your connection and try again.",
+    rt_all: 'All', rt_pop: 'Pop', rt_hits: 'Hits', rt_rock: 'Rock', rt_news: 'News', rt_talk: 'Talk', rt_dance: 'Dance', rt_oldies: 'Oldies', rt_80s: '80s', rt_jazz: 'Jazz', rt_classical: 'Classical', rt_local: 'Local', rt_sport: 'Sport', rt_native: '',
+    library_title: 'Your Library', new_playlist: 'New playlist', add_music_files: 'Add your music files', liked_songs: 'Liked songs', your_files: 'Your files',
+    plays_offline: 'plays offline', playlist_word: 'Playlist', create_hint: "Create a playlist, then add songs from any song's ⋯ menu.",
+    song_1: '{n} song', song_n: '{n} songs', station_1: '{n} radio station', station_n: '{n} radio stations', hr: 'hr', min: 'min',
+    stored_on_device: 'stored on this device', add_files: 'Add files', shuffle: 'Shuffle', save_to_library: 'Save to library', saved_to_library: 'Saved to Your Library',
+    files_empty: 'Add MP3, FLAC, M4A, WAV or OGG files from your phone. They play offline, and lyrics work well for well-known songs.',
+    liked_empty: 'Tap the heart on any song to save it here', playlist_empty: 'Search for songs and use ⋯ → Add to playlist', apl_empty: 'This playlist has no playable songs', nothing_here: 'Nothing here yet',
+    settings: 'Settings', language: 'Language', keep_going: 'Keep the music going', keep_going_sub: 'When your queue ends, continue with similar songs',
+    api_key_label: 'Audius API key (optional). Only needed if Audius ever starts requiring one; free from audius.co/settings → Developer apps', leave_empty: 'Leave empty',
+    backup: 'Backup', backup_note: "Playlists, liked songs and your radio stations are saved on this device only. Export a backup to move them to another phone. Your own music files aren't included.",
+    export_backup: 'Export backup', restore_backup: 'Restore backup', clear_recent: 'Clear recently played', storage_used: 'Storage used on this device: {x} MB',
+    about_title: 'About Tempo', about_text: 'No ads, no subscriptions. Streaming music comes from {audius}, where artists share their music for free; every song credits its artist and links back to them. Lyrics are community-sourced from {lrclib}. Radio stations come from the {rb} directory.',
+    saved: 'Saved', cleared: 'Cleared', backup_restored: 'Backup restored', not_backup: "That file isn't a Tempo backup",
+    cancel: 'Cancel', save: 'Save', create: 'Create', my_playlist: 'My playlist #{n}', added_to: 'Added to {x}', created: 'Created {x}', already_in: 'Already in {x}',
+    added_liked: 'Added to Liked songs', removed_liked: 'Removed from Liked songs', added_stations: 'Added to Your stations', removed_stations: 'Removed from Your stations',
+    play_next: 'Play next', add_to_queue: 'Add to queue', add_to_playlist: 'Add to playlist', add_liked: 'Add to Liked songs', remove_liked: 'Remove from Liked songs',
+    move_up: 'Move up', move_down: 'Move down', remove_from_pl: 'Remove from this playlist', removed: 'Removed', open_audius: 'Open artist page on Audius',
+    edit_title_artist: 'Edit title / artist', delete_file: 'Delete file from this device', add_station: 'Add to Your stations', remove_station: 'Remove from Your stations',
+    open_website: 'Open station website', live_radio_lbl: 'Live radio', add_all_queue: 'Add all to queue', rename: 'Rename', delete_playlist: 'Delete playlist',
+    delete_q: 'Delete "{x}"?', cant_undo: "This can't be undone.", delete: 'Delete', playlist_deleted: 'Playlist deleted', rename_playlist: 'Rename playlist',
+    song_title: 'Song title', artist: 'Artist', file_deleted: 'File deleted', playing_next: 'Playing next', added_queue: 'Added to queue',
+    not_on_device: '"{x}" isn\'t on this device', several_failed: "Several songs couldn't play. Check your connection.", stopped_broadcasting: 'The station stopped broadcasting',
+    more_like_this: 'More like this', keeping_going: 'Keeping the music going: more like this', shuffle_on: 'Shuffle on', shuffle_off: 'Shuffle off',
+    repeat_off: 'Repeat off', repeat_all: 'Repeat all', repeat_one: 'Repeat this song', station_unavailable: "This station isn't available right now. Try another one.",
+    couldnt_play: 'Couldn\'t play "{x}", skipping', live: 'Live', station_website: 'station website', streaming_audius: 'Streaming from Audius', support: 'support {x}', from_files: 'From your files',
+    next_up: 'Next up', similar_will_play: 'Similar songs will play when the queue ends.', queue_empty: 'Queue is empty.',
+    lyr_radio_sub: "Lyrics aren't available for radio stations.", instrumental: 'Instrumental', no_lyrics_in: 'No lyrics in this song', no_lyrics: 'No lyrics found',
+    no_lyrics_sub: "Independent tracks often don't have lyrics online yet.<br>If the name is different, search for it.", search_lyrics: 'Search lyrics',
+    lyrics_from: 'Lyrics from LRCLIB · tap a line to jump to it', lyrics_plain: 'Lyrics from LRCLIB (not time-synced)', song_title_search: 'Song title to search', next: 'Next', search: 'Search',
+    importing: 'Importing {i} of {n}…', imported_1: 'Imported {n} file', imported_n: 'Imported {n} files', no_audio: 'No audio files selected', unknown_artist: 'Unknown artist'
+  },
+  it: {
+    tab_home: 'Home', tab_search: 'Cerca', tab_radio: 'Radio', tab_library: 'La tua libreria',
+    seg_song: 'Brano', seg_lyrics: 'Testo', seg_queue: 'Coda', live_radio: 'RADIO IN DIRETTA',
+    now_playing: 'In riproduzione', playing_from: 'Riproduzione da {x}',
+    good_night: 'Buonanotte', good_morning: 'Buongiorno', good_afternoon: 'Buon pomeriggio', good_evening: 'Buonasera',
+    recently_played: 'Ascoltati di recente', browse_genre: 'Sfoglia per genere', trending_week: 'Di tendenza questa settimana', trending: 'Di tendenza', play_all: 'Riproduci tutto',
+    popular_playlists: 'Playlist popolari', rising_underground: 'Talenti emergenti', lang_picks: 'Musica in italiano',
+    home_note: 'Catalogo in streaming da Audius, una piattaforma gratuita dove gli artisti indipendenti condividono la loro musica. Aggiungi i tuoi file nella tua libreria.',
+    no_tracks_genre: 'Nessun brano trovato per questo genere', no_playlists: 'Nessuna playlist al momento', all: 'Tutti',
+    offline_music: 'Impossibile raggiungere il catalogo musicale. Controlla la connessione, poi tocca un genere per riprovare.<br><br>I tuoi file funzionano anche offline.',
+    search_title: 'Cerca', search_ph: 'Brani, artisti, playlist', browse_genres: 'Sfoglia i generi', in_library: 'Nella tua libreria', your_library: 'La tua libreria',
+    songs: 'Brani', playlists: 'Playlist', no_songs: 'Nessun brano trovato',
+    radio_title: 'Radio', radio_stations_of: 'Stazioni da: {x}', radio_search_ph: 'Cerca stazioni in {x}', your_stations: 'Le tue stazioni', popular_in: 'Popolari in {x}', results: 'Risultati',
+    radio_note: 'Stazioni in diretta dalla directory Radio Browser. Le radio trasmettono la propria pubblicità e i propri conduttori, che Tempo non può rimuovere. Tocca il cuore su una stazione per aggiungerla alle tue stazioni.',
+    no_stations_name: 'Nessuna stazione trovata con questo nome', no_stations_cat: 'Nessuna stazione trovata per questa categoria',
+    radio_offline: 'Impossibile raggiungere la directory delle radio. Controlla la connessione e riprova.',
+    rt_all: 'Tutte', rt_pop: 'Pop', rt_hits: 'Successi', rt_rock: 'Rock', rt_news: 'Notizie', rt_talk: 'Parlato', rt_dance: 'Dance', rt_oldies: 'Anni d\'oro', rt_80s: 'Anni 80', rt_jazz: 'Jazz', rt_classical: 'Classica', rt_local: 'Locali', rt_sport: 'Sport', rt_native: 'Musica italiana',
+    library_title: 'La tua libreria', new_playlist: 'Nuova playlist', add_music_files: 'Aggiungi i tuoi file musicali', liked_songs: 'Brani preferiti', your_files: 'I tuoi file',
+    plays_offline: 'anche offline', playlist_word: 'Playlist', create_hint: 'Crea una playlist, poi aggiungi brani dal menu ⋯ di qualsiasi brano.',
+    song_1: '{n} brano', song_n: '{n} brani', station_1: '{n} stazione radio', station_n: '{n} stazioni radio', hr: 'h', min: 'min',
+    stored_on_device: 'salvati su questo dispositivo', add_files: 'Aggiungi file', shuffle: 'Casuale', save_to_library: 'Salva in libreria', saved_to_library: 'Salvata nella tua libreria',
+    files_empty: 'Aggiungi file MP3, FLAC, M4A, WAV o OGG dal tuo telefono. Funzionano offline, e i testi funzionano bene per i brani famosi.',
+    liked_empty: 'Tocca il cuore su un brano per salvarlo qui', playlist_empty: 'Cerca dei brani e usa ⋯ → Aggiungi a playlist', apl_empty: 'Questa playlist non ha brani riproducibili', nothing_here: 'Ancora niente qui',
+    settings: 'Impostazioni', language: 'Lingua', keep_going: 'Musica senza fine', keep_going_sub: 'Quando la coda finisce, continua con brani simili',
+    api_key_label: 'Chiave API di Audius (facoltativa). Serve solo se Audius un giorno la richiedesse; gratuita su audius.co/settings → Developer apps', leave_empty: 'Lascia vuoto',
+    backup: 'Backup', backup_note: 'Playlist, brani preferiti e stazioni radio sono salvati solo su questo dispositivo. Esporta un backup per spostarli su un altro telefono. I tuoi file musicali non sono inclusi.',
+    export_backup: 'Esporta backup', restore_backup: 'Ripristina backup', clear_recent: 'Cancella ascoltati di recente', storage_used: 'Spazio usato su questo dispositivo: {x} MB',
+    about_title: 'Informazioni su Tempo', about_text: 'Niente pubblicità, niente abbonamenti. La musica in streaming arriva da {audius}, dove gli artisti condividono la loro musica gratuitamente; ogni brano cita il suo artista con un link. I testi provengono dalla community di {lrclib}. Le stazioni radio provengono dalla directory {rb}.',
+    saved: 'Salvato', cleared: 'Cancellato', backup_restored: 'Backup ripristinato', not_backup: 'Questo file non è un backup di Tempo',
+    cancel: 'Annulla', save: 'Salva', create: 'Crea', my_playlist: 'La mia playlist n. {n}', added_to: 'Aggiunto a {x}', created: 'Creata {x}', already_in: 'Già presente in {x}',
+    added_liked: 'Aggiunto ai brani preferiti', removed_liked: 'Rimosso dai brani preferiti', added_stations: 'Aggiunta alle tue stazioni', removed_stations: 'Rimossa dalle tue stazioni',
+    play_next: 'Riproduci dopo', add_to_queue: 'Aggiungi alla coda', add_to_playlist: 'Aggiungi a playlist', add_liked: 'Aggiungi ai preferiti', remove_liked: 'Rimuovi dai preferiti',
+    move_up: 'Sposta su', move_down: 'Sposta giù', remove_from_pl: 'Rimuovi da questa playlist', removed: 'Rimosso', open_audius: "Apri la pagina dell'artista su Audius",
+    edit_title_artist: 'Modifica titolo / artista', delete_file: 'Elimina il file da questo dispositivo', add_station: 'Aggiungi alle tue stazioni', remove_station: 'Rimuovi dalle tue stazioni',
+    open_website: 'Apri il sito della stazione', live_radio_lbl: 'Radio in diretta', add_all_queue: 'Aggiungi tutto alla coda', rename: 'Rinomina', delete_playlist: 'Elimina playlist',
+    delete_q: 'Eliminare "{x}"?', cant_undo: 'Questa azione non si può annullare.', delete: 'Elimina', playlist_deleted: 'Playlist eliminata', rename_playlist: 'Rinomina playlist',
+    song_title: 'Titolo del brano', artist: 'Artista', file_deleted: 'File eliminato', playing_next: 'Sarà il prossimo', added_queue: 'Aggiunto alla coda',
+    not_on_device: '"{x}" non è su questo dispositivo', several_failed: 'Diversi brani non sono stati riprodotti. Controlla la connessione.', stopped_broadcasting: 'La stazione ha smesso di trasmettere',
+    more_like_this: 'Brani simili', keeping_going: 'La musica continua: brani simili', shuffle_on: 'Riproduzione casuale attiva', shuffle_off: 'Riproduzione casuale disattivata',
+    repeat_off: 'Ripetizione disattivata', repeat_all: 'Ripeti tutto', repeat_one: 'Ripeti questo brano', station_unavailable: "Questa stazione non è disponibile ora. Provane un'altra.",
+    couldnt_play: 'Impossibile riprodurre "{x}", passo al successivo', live: 'Diretta', station_website: 'sito della stazione', streaming_audius: 'In streaming da Audius', support: 'sostieni {x}', from_files: 'Dai tuoi file',
+    next_up: 'Prossimi', similar_will_play: 'Alla fine della coda partiranno brani simili.', queue_empty: 'La coda è vuota.',
+    lyr_radio_sub: 'I testi non sono disponibili per le stazioni radio.', instrumental: 'Strumentale', no_lyrics_in: 'Questo brano non ha testo', no_lyrics: 'Nessun testo trovato',
+    no_lyrics_sub: 'I brani indipendenti spesso non hanno ancora il testo online.<br>Se il titolo è diverso, cercalo.', search_lyrics: 'Cerca il testo',
+    lyrics_from: 'Testo da LRCLIB · tocca una riga per saltarci', lyrics_plain: 'Testo da LRCLIB (non sincronizzato)', song_title_search: 'Titolo del brano da cercare', next: 'Avanti', search: 'Cerca',
+    importing: 'Importazione {i} di {n}…', imported_1: '{n} file importato', imported_n: '{n} file importati', no_audio: 'Nessun file audio selezionato', unknown_artist: 'Artista sconosciuto'
+  },
+  es: {
+    tab_home: 'Inicio', tab_search: 'Buscar', tab_radio: 'Radio', tab_library: 'Tu biblioteca',
+    seg_song: 'Canción', seg_lyrics: 'Letra', seg_queue: 'Cola', live_radio: 'RADIO EN DIRECTO',
+    now_playing: 'Reproduciendo', playing_from: 'Reproduciendo desde {x}',
+    good_night: 'Buenas noches', good_morning: 'Buenos días', good_afternoon: 'Buenas tardes', good_evening: 'Buenas noches',
+    recently_played: 'Escuchado recientemente', browse_genre: 'Explorar por género', trending_week: 'Tendencias de la semana', trending: 'Tendencias', play_all: 'Reproducir todo',
+    popular_playlists: 'Listas populares', rising_underground: 'Talentos emergentes', lang_picks: 'Música en español',
+    home_note: 'Catálogo en streaming de Audius, una plataforma gratuita donde los artistas independientes comparten su música. Añade tus propios archivos en Tu biblioteca.',
+    no_tracks_genre: 'No se han encontrado canciones de este género', no_playlists: 'No hay listas en este momento', all: 'Todo',
+    offline_music: 'No se ha podido conectar con el catálogo musical. Comprueba la conexión y toca un género para reintentarlo.<br><br>Tus archivos siguen funcionando sin conexión.',
+    search_title: 'Buscar', search_ph: 'Canciones, artistas, listas', browse_genres: 'Explorar géneros', in_library: 'En tu biblioteca', your_library: 'Tu biblioteca',
+    songs: 'Canciones', playlists: 'Listas', no_songs: 'No se han encontrado canciones',
+    radio_title: 'Radio', radio_stations_of: 'Emisoras de {x}', radio_search_ph: 'Buscar emisoras en {x}', your_stations: 'Tus emisoras', popular_in: 'Populares en {x}', results: 'Resultados',
+    radio_note: 'Emisoras en directo del directorio Radio Browser. Las emisoras emiten su propia publicidad y locutores, que Tempo no puede quitar. Toca el corazón de una emisora para añadirla a Tus emisoras.',
+    no_stations_name: 'No se han encontrado emisoras con ese nombre', no_stations_cat: 'No se han encontrado emisoras en esta categoría',
+    radio_offline: 'No se ha podido conectar con el directorio de radios. Comprueba la conexión y vuelve a intentarlo.',
+    rt_all: 'Todas', rt_pop: 'Pop', rt_hits: 'Éxitos', rt_rock: 'Rock', rt_news: 'Noticias', rt_talk: 'Tertulia', rt_dance: 'Dance', rt_oldies: 'Clásicos', rt_80s: 'Años 80', rt_jazz: 'Jazz', rt_classical: 'Clásica', rt_local: 'Locales', rt_sport: 'Deportes', rt_native: 'Música latina',
+    library_title: 'Tu biblioteca', new_playlist: 'Nueva lista', add_music_files: 'Añadir tus archivos de música', liked_songs: 'Canciones favoritas', your_files: 'Tus archivos',
+    plays_offline: 'sin conexión', playlist_word: 'Lista', create_hint: 'Crea una lista y añade canciones desde el menú ⋯ de cualquier canción.',
+    song_1: '{n} canción', song_n: '{n} canciones', station_1: '{n} emisora', station_n: '{n} emisoras', hr: 'h', min: 'min',
+    stored_on_device: 'guardados en este dispositivo', add_files: 'Añadir archivos', shuffle: 'Aleatorio', save_to_library: 'Guardar en biblioteca', saved_to_library: 'Guardada en Tu biblioteca',
+    files_empty: 'Añade archivos MP3, FLAC, M4A, WAV u OGG desde tu móvil. Funcionan sin conexión, y las letras van muy bien con canciones conocidas.',
+    liked_empty: 'Toca el corazón de una canción para guardarla aquí', playlist_empty: 'Busca canciones y usa ⋯ → Añadir a una lista', apl_empty: 'Esta lista no tiene canciones reproducibles', nothing_here: 'Aún no hay nada aquí',
+    settings: 'Ajustes', language: 'Idioma', keep_going: 'Música sin pausa', keep_going_sub: 'Cuando termine la cola, sigue con canciones parecidas',
+    api_key_label: 'Clave API de Audius (opcional). Solo hace falta si Audius llegara a pedirla; gratis en audius.co/settings → Developer apps', leave_empty: 'Déjalo vacío',
+    backup: 'Copia de seguridad', backup_note: 'Las listas, canciones favoritas y emisoras se guardan solo en este dispositivo. Exporta una copia para pasarlas a otro móvil. Tus archivos de música no se incluyen.',
+    export_backup: 'Exportar copia', restore_backup: 'Restaurar copia', clear_recent: 'Borrar escuchado recientemente', storage_used: 'Espacio usado en este dispositivo: {x} MB',
+    about_title: 'Acerca de Tempo', about_text: 'Sin anuncios ni suscripciones. La música en streaming viene de {audius}, donde los artistas comparten su música gratis; cada canción menciona a su artista con un enlace. Las letras proceden de la comunidad de {lrclib}. Las emisoras proceden del directorio {rb}.',
+    saved: 'Guardado', cleared: 'Borrado', backup_restored: 'Copia restaurada', not_backup: 'Ese archivo no es una copia de Tempo',
+    cancel: 'Cancelar', save: 'Guardar', create: 'Crear', my_playlist: 'Mi lista n.º {n}', added_to: 'Añadida a {x}', created: 'Creada {x}', already_in: 'Ya está en {x}',
+    added_liked: 'Añadida a favoritas', removed_liked: 'Quitada de favoritas', added_stations: 'Añadida a Tus emisoras', removed_stations: 'Quitada de Tus emisoras',
+    play_next: 'Reproducir después', add_to_queue: 'Añadir a la cola', add_to_playlist: 'Añadir a una lista', add_liked: 'Añadir a favoritas', remove_liked: 'Quitar de favoritas',
+    move_up: 'Subir', move_down: 'Bajar', remove_from_pl: 'Quitar de esta lista', removed: 'Quitada', open_audius: 'Abrir la página del artista en Audius',
+    edit_title_artist: 'Editar título / artista', delete_file: 'Eliminar el archivo de este dispositivo', add_station: 'Añadir a Tus emisoras', remove_station: 'Quitar de Tus emisoras',
+    open_website: 'Abrir la web de la emisora', live_radio_lbl: 'Radio en directo', add_all_queue: 'Añadir todo a la cola', rename: 'Cambiar nombre', delete_playlist: 'Eliminar lista',
+    delete_q: '¿Eliminar "{x}"?', cant_undo: 'No se puede deshacer.', delete: 'Eliminar', playlist_deleted: 'Lista eliminada', rename_playlist: 'Cambiar nombre de la lista',
+    song_title: 'Título de la canción', artist: 'Artista', file_deleted: 'Archivo eliminado', playing_next: 'Sonará a continuación', added_queue: 'Añadida a la cola',
+    not_on_device: '"{x}" no está en este dispositivo', several_failed: 'Varias canciones no se han podido reproducir. Comprueba la conexión.', stopped_broadcasting: 'La emisora ha dejado de emitir',
+    more_like_this: 'Más como esto', keeping_going: 'La música sigue: más como esto', shuffle_on: 'Aleatorio activado', shuffle_off: 'Aleatorio desactivado',
+    repeat_off: 'Repetición desactivada', repeat_all: 'Repetir todo', repeat_one: 'Repetir esta canción', station_unavailable: 'Esta emisora no está disponible ahora. Prueba otra.',
+    couldnt_play: 'No se ha podido reproducir "{x}", pasando a la siguiente', live: 'En directo', station_website: 'web de la emisora', streaming_audius: 'En streaming desde Audius', support: 'apoya a {x}', from_files: 'De tus archivos',
+    next_up: 'A continuación', similar_will_play: 'Al terminar la cola sonarán canciones parecidas.', queue_empty: 'La cola está vacía.',
+    lyr_radio_sub: 'Las letras no están disponibles para la radio.', instrumental: 'Instrumental', no_lyrics_in: 'Esta canción no tiene letra', no_lyrics: 'No se ha encontrado la letra',
+    no_lyrics_sub: 'Las canciones independientes a menudo aún no tienen letra en internet.<br>Si el título es distinto, búscala.', search_lyrics: 'Buscar letra',
+    lyrics_from: 'Letra de LRCLIB · toca una línea para saltar a ella', lyrics_plain: 'Letra de LRCLIB (sin sincronizar)', song_title_search: 'Título de la canción que buscar', next: 'Siguiente', search: 'Buscar',
+    importing: 'Importando {i} de {n}…', imported_1: '{n} archivo importado', imported_n: '{n} archivos importados', no_audio: 'No has seleccionado archivos de audio', unknown_artist: 'Artista desconocido'
+  },
+  pt: {
+    tab_home: 'Início', tab_search: 'Pesquisar', tab_radio: 'Rádio', tab_library: 'A tua biblioteca',
+    seg_song: 'Música', seg_lyrics: 'Letra', seg_queue: 'Fila', live_radio: 'RÁDIO EM DIRETO',
+    now_playing: 'A tocar', playing_from: 'A tocar de {x}',
+    good_night: 'Boa noite', good_morning: 'Bom dia', good_afternoon: 'Boa tarde', good_evening: 'Boa noite',
+    recently_played: 'Ouvidas recentemente', browse_genre: 'Explorar por género', trending_week: 'Em alta esta semana', trending: 'Em alta', play_all: 'Tocar tudo',
+    popular_playlists: 'Playlists populares', rising_underground: 'Talentos emergentes', lang_picks: 'Música em português',
+    home_note: 'Catálogo em streaming do Audius, uma plataforma gratuita onde artistas independentes partilham a sua música. Adiciona os teus próprios ficheiros em A tua biblioteca.',
+    no_tracks_genre: 'Não foram encontradas músicas deste género', no_playlists: 'Sem playlists de momento', all: 'Tudo',
+    offline_music: 'Não foi possível ligar ao catálogo de música. Verifica a ligação e toca num género para tentar de novo.<br><br>Os teus ficheiros continuam a tocar sem ligação.',
+    search_title: 'Pesquisar', search_ph: 'Músicas, artistas, playlists', browse_genres: 'Explorar géneros', in_library: 'Na tua biblioteca', your_library: 'A tua biblioteca',
+    songs: 'Músicas', playlists: 'Playlists', no_songs: 'Não foram encontradas músicas',
+    radio_title: 'Rádio', radio_stations_of: 'Estações de {x}', radio_search_ph: 'Pesquisar estações em {x}', your_stations: 'As tuas estações', popular_in: 'Populares em {x}', results: 'Resultados',
+    radio_note: 'Estações em direto do diretório Radio Browser. As rádios transmitem a sua própria publicidade e locutores, que o Tempo não consegue remover. Toca no coração de uma estação para a adicionar às tuas estações.',
+    no_stations_name: 'Não foram encontradas estações com esse nome', no_stations_cat: 'Não foram encontradas estações nesta categoria',
+    radio_offline: 'Não foi possível ligar ao diretório de rádios. Verifica a ligação e tenta de novo.',
+    rt_all: 'Todas', rt_pop: 'Pop', rt_hits: 'Êxitos', rt_rock: 'Rock', rt_news: 'Notícias', rt_talk: 'Conversa', rt_dance: 'Dance', rt_oldies: 'Clássicos', rt_80s: 'Anos 80', rt_jazz: 'Jazz', rt_classical: 'Clássica', rt_local: 'Locais', rt_sport: 'Desporto', rt_native: 'Música lusófona',
+    library_title: 'A tua biblioteca', new_playlist: 'Nova playlist', add_music_files: 'Adicionar os teus ficheiros de música', liked_songs: 'Músicas favoritas', your_files: 'Os teus ficheiros',
+    plays_offline: 'tocam sem ligação', playlist_word: 'Playlist', create_hint: 'Cria uma playlist e adiciona músicas a partir do menu ⋯ de qualquer música.',
+    song_1: '{n} música', song_n: '{n} músicas', station_1: '{n} estação de rádio', station_n: '{n} estações de rádio', hr: 'h', min: 'min',
+    stored_on_device: 'guardados neste dispositivo', add_files: 'Adicionar ficheiros', shuffle: 'Aleatório', save_to_library: 'Guardar na biblioteca', saved_to_library: 'Guardada em A tua biblioteca',
+    files_empty: 'Adiciona ficheiros MP3, FLAC, M4A, WAV ou OGG do teu telemóvel. Tocam sem ligação, e as letras funcionam bem com músicas conhecidas.',
+    liked_empty: 'Toca no coração de uma música para a guardar aqui', playlist_empty: 'Pesquisa músicas e usa ⋯ → Adicionar a uma playlist', apl_empty: 'Esta playlist não tem músicas reproduzíveis', nothing_here: 'Ainda não há nada aqui',
+    settings: 'Definições', language: 'Idioma', keep_going: 'Música sem parar', keep_going_sub: 'Quando a fila acabar, continua com músicas parecidas',
+    api_key_label: 'Chave API do Audius (opcional). Só é precisa se o Audius vier a exigi-la; gratuita em audius.co/settings → Developer apps', leave_empty: 'Deixa em branco',
+    backup: 'Cópia de segurança', backup_note: 'As playlists, músicas favoritas e estações de rádio ficam guardadas só neste dispositivo. Exporta uma cópia para as passar para outro telemóvel. Os teus ficheiros de música não estão incluídos.',
+    export_backup: 'Exportar cópia', restore_backup: 'Restaurar cópia', clear_recent: 'Limpar ouvidas recentemente', storage_used: 'Espaço usado neste dispositivo: {x} MB',
+    about_title: 'Sobre o Tempo', about_text: 'Sem anúncios nem subscrições. A música em streaming vem do {audius}, onde os artistas partilham a sua música gratuitamente; cada música indica o seu artista com uma ligação. As letras vêm da comunidade {lrclib}. As estações de rádio vêm do diretório {rb}.',
+    saved: 'Guardado', cleared: 'Limpo', backup_restored: 'Cópia restaurada', not_backup: 'Esse ficheiro não é uma cópia do Tempo',
+    cancel: 'Cancelar', save: 'Guardar', create: 'Criar', my_playlist: 'A minha playlist n.º {n}', added_to: 'Adicionada a {x}', created: 'Criada {x}', already_in: 'Já está em {x}',
+    added_liked: 'Adicionada às favoritas', removed_liked: 'Removida das favoritas', added_stations: 'Adicionada às tuas estações', removed_stations: 'Removida das tuas estações',
+    play_next: 'Tocar a seguir', add_to_queue: 'Adicionar à fila', add_to_playlist: 'Adicionar a uma playlist', add_liked: 'Adicionar às favoritas', remove_liked: 'Remover das favoritas',
+    move_up: 'Mover para cima', move_down: 'Mover para baixo', remove_from_pl: 'Remover desta playlist', removed: 'Removida', open_audius: 'Abrir a página do artista no Audius',
+    edit_title_artist: 'Editar título / artista', delete_file: 'Apagar o ficheiro deste dispositivo', add_station: 'Adicionar às tuas estações', remove_station: 'Remover das tuas estações',
+    open_website: 'Abrir o site da estação', live_radio_lbl: 'Rádio em direto', add_all_queue: 'Adicionar tudo à fila', rename: 'Mudar o nome', delete_playlist: 'Apagar playlist',
+    delete_q: 'Apagar "{x}"?', cant_undo: 'Não é possível anular.', delete: 'Apagar', playlist_deleted: 'Playlist apagada', rename_playlist: 'Mudar o nome da playlist',
+    song_title: 'Título da música', artist: 'Artista', file_deleted: 'Ficheiro apagado', playing_next: 'Toca a seguir', added_queue: 'Adicionada à fila',
+    not_on_device: '"{x}" não está neste dispositivo', several_failed: 'Várias músicas não tocaram. Verifica a ligação.', stopped_broadcasting: 'A estação deixou de transmitir',
+    more_like_this: 'Mais parecidas', keeping_going: 'A música continua: mais parecidas', shuffle_on: 'Aleatório ligado', shuffle_off: 'Aleatório desligado',
+    repeat_off: 'Repetir desligado', repeat_all: 'Repetir tudo', repeat_one: 'Repetir esta música', station_unavailable: 'Esta estação não está disponível agora. Experimenta outra.',
+    couldnt_play: 'Não foi possível tocar "{x}", a passar à seguinte', live: 'Em direto', station_website: 'site da estação', streaming_audius: 'Em streaming do Audius', support: 'apoia {x}', from_files: 'Dos teus ficheiros',
+    next_up: 'A seguir', similar_will_play: 'Quando a fila acabar, tocam músicas parecidas.', queue_empty: 'A fila está vazia.',
+    lyr_radio_sub: 'As letras não estão disponíveis para rádio.', instrumental: 'Instrumental', no_lyrics_in: 'Esta música não tem letra', no_lyrics: 'Letra não encontrada',
+    no_lyrics_sub: 'As músicas independentes muitas vezes ainda não têm letra na internet.<br>Se o título for diferente, pesquisa-a.', search_lyrics: 'Pesquisar letra',
+    lyrics_from: 'Letra do LRCLIB · toca numa linha para saltar para ela', lyrics_plain: 'Letra do LRCLIB (não sincronizada)', song_title_search: 'Título da música a pesquisar', next: 'Seguinte', search: 'Pesquisar',
+    importing: 'A importar {i} de {n}…', imported_1: '{n} ficheiro importado', imported_n: '{n} ficheiros importados', no_audio: 'Nenhum ficheiro de áudio selecionado', unknown_artist: 'Artista desconhecido'
+  }
+};
+// Content that changes with the language
+const LANG_CONTENT = {
+  en: { countries: ['GB', 'IE', 'US'], picks: [], nativeTag: '', genreFirst: [] },
+  it: { countries: ['IT'], picks: ['italiano', 'rap italiano', 'canzone italiana'], nativeTag: 'italian', genreFirst: [] },
+  es: { countries: ['ES', 'MX', 'AR', 'CO'], picks: ['español', 'reggaeton', 'musica latina'], nativeTag: 'latin', genreFirst: ['Latin'] },
+  pt: { countries: ['PT', 'BR'], picks: ['português', 'brasil', 'funk brasileiro'], nativeTag: 'portug', genreFirst: ['Latin'] }
+};
+function detectLang() { const l = (navigator.language || 'en').slice(0, 2).toLowerCase(); return I18N[l] ? l : 'en'; }
+const lang = () => (S && S.settings && I18N[S.settings.lang]) ? S.settings.lang : 'en';
+function T(key, vars) {
+  let s = (I18N[lang()] && I18N[lang()][key]); if (s == null) s = I18N.en[key]; if (s == null) s = key;
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+const nSongs = n => T(n === 1 ? 'song_1' : 'song_n', { n });
+const nStations = n => T(n === 1 ? 'station_1' : 'station_n', { n });
+const flagOf = cc => String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+function countryName(cc) { try { return new Intl.DisplayNames([lang()], { type: 'region' }).of(cc) || cc; } catch { return cc; } }
+const showArtist = a => /^unknown artist$/i.test(a || '') ? T('unknown_artist') : a;
+
 const cur = () => S.queue[S.qi] || null;
 // Keep only the fields we need when saving a track
 const slim = t => {
@@ -619,11 +836,11 @@ const typeFor = n => ({ mp3: 'audio/mpeg', flac: 'audio/flac', m4a: 'audio/mp4',
 
 async function importFiles(files) {
   files = [...files].filter(f => /^audio\//.test(f.type) || /\.(mp3|flac|m4a|aac|wav|ogg|opus)$/i.test(f.name));
-  if (!files.length) return toast('No audio files selected');
+  if (!files.length) return toast(T('no_audio'));
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
   let n = 0;
   for (const f of files) {
-    toast(`Importing ${++n} of ${files.length}…`, 60000);
+    toast(T('importing', { i: ++n, n: files.length }), 60000);
     try {
       let tags = {};
       try { tags = await readTags(f); } catch {}
@@ -639,7 +856,7 @@ async function importFiles(files) {
       S.local.push(localTrack(meta));
     } catch (e) { console.warn('Import failed', f.name, e); }
   }
-  toast(`Imported ${n} file${n === 1 ? '' : 's'}`);
+  toast(T(n === 1 ? 'imported_1' : 'imported_n', { n }));
   refresh();
 }
 function localTrack(m) { return { id: m.id, src: 'local', localKey: m.localKey, title: m.title, artist: m.artist, album: m.album, duration: m.duration, art: null, genre: '' }; }
@@ -674,13 +891,13 @@ const LISTS = new Map(); let listSeq = 0;
 function trackListHTML(tracks, ctx = {}) {
   const id = 'L' + (++listSeq);
   LISTS.set(id, { tracks, ctx });
-  if (!tracks.length) return `<div class="empty">${esc(ctx.empty || 'Nothing here yet')}</div>`;
+  if (!tracks.length) return `<div class="empty">${esc(ctx.empty || T('nothing_here'))}</div>`;
   const c = cur();
   return `<div class="list" data-list="${id}">` + tracks.map((t, i) => `
     <div class="row" data-i="${i}">
       ${ctx.numbered ? `<div class="num">${i + 1}</div>` : ''}
       ${artHTML(t)}
-      <div class="meta"><div class="t ${c && c.id === t.id ? 'on' : ''}">${esc(t.title)}</div><div class="s">${t.src === 'local' ? '⤓ ' : ''}${esc(t.artist)}${t.duration ? ' · ' + fmt(t.duration) : ''}</div></div>
+      <div class="meta"><div class="t ${c && c.id === t.id ? 'on' : ''}">${esc(t.title)}</div><div class="s">${t.src === 'local' ? '⤓ ' : ''}${esc(showArtist(t.artist))}${t.duration ? ' · ' + fmt(t.duration) : ''}</div></div>
       <button class="icon-btn more" data-more="${i}" aria-label="More options">${ICON.more}</button>
     </div>`).join('') + '</div>';
 }
@@ -702,6 +919,7 @@ function back() { route = navStack.pop() || { name: 'home' }; render(); }
 function setTab(name) { navStack.length = 0; route = { name }; render(); window.scrollTo(0, 0); }
 $('#backBtn').onclick = back;
 $('#settingsBtn').onclick = () => go({ name: 'settings' });
+$('#langBtn').onclick = () => langMenu();
 $$('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
 function refresh() { render(true); }
 
@@ -712,6 +930,7 @@ function render(keepScroll) {
   $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tabOf[route.name]));
   $('#backBtn').classList.toggle('hidden', !navStack.length);
   $('#settingsBtn').classList.toggle('hidden', route.name === 'settings');
+  $('#langBtn').textContent = (LANGS.find(l => l[0] === lang()) || LANGS[0])[1];
   const V = $('#view');
   const fn = { home: viewHome, search: viewSearch, radio: viewRadio, library: viewLibrary, liked: viewLiked, files: viewFiles, playlist: viewPlaylist, apl: viewAudiusPlaylist, settings: viewSettings }[route.name] || viewHome;
   fn(V);
@@ -722,53 +941,69 @@ const setTitle = t => { $('#viewTitle').textContent = t; };
 /* ---- Home ---- */
 const GENRES = ['All', 'Electronic', 'Hip-Hop/Rap', 'Pop', 'Alternative', 'R&B/Soul', 'Rock', 'Lo-Fi', 'House', 'Ambient', 'Acoustic', 'Jazz', 'Latin', 'Techno', 'Deep House', 'Drum & Bass', 'Dubstep', 'Trap', 'Folk', 'Classical', 'Soundtrack', 'Reggae', 'Country'];
 const homeCache = {};
-function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
+function greeting() { const h = new Date().getHours(); return T(h < 5 ? 'good_night' : h < 12 ? 'good_morning' : h < 18 ? 'good_afternoon' : 'good_evening'); }
+function genreList() { const first = LANG_CONTENT[lang()].genreFirst; return ['All', ...first, ...GENRES.slice(1).filter(g => !first.includes(g))]; }
+const genreLabel = g => g === 'All' ? T('all') : g;
 function viewHome(V) {
   setTitle(greeting());
   const recent = S.history.slice(0, 12);
   V.innerHTML = `
-    ${recent.length ? `<h2>Recently played</h2><div class="hscroll" id="recent">${recent.map((t, i) => `<button class="card" data-rec="${i}">${artHTML(t)}<div class="ct">${esc(t.title)}</div><div class="cs">${esc(t.artist)}</div></button>`).join('')}</div>` : ''}
-    <h2>Browse by genre</h2>
-    <div class="chips" id="genres">${GENRES.map(g => `<button class="chip ${g === S.genre ? 'on' : ''}" data-g="${esc(g)}">${esc(g)}</button>`).join('')}</div>
-    <div class="sec-head"><h2>Trending this week${S.genre !== 'All' ? ' · ' + esc(S.genre) : ''}</h2><button class="link" id="playTrend">Play all</button></div>
+    ${LANG_CONTENT[lang()].picks.length ? `<div class="sec-head"><h2>${esc(T('lang_picks'))}</h2><button class="link" id="playPicks">${esc(T('play_all'))}</button></div><div id="picks"><div class="spinner"></div></div>` : ''}
+    ${recent.length ? `<h2>${esc(T('recently_played'))}</h2><div class="hscroll" id="recent">${recent.map((t, i) => `<button class="card" data-rec="${i}">${artHTML(t)}<div class="ct">${esc(t.title)}</div><div class="cs">${esc(t.artist)}</div></button>`).join('')}</div>` : ''}
+    <h2>${esc(T('browse_genre'))}</h2>
+    <div class="chips" id="genres">${genreList().map(g => `<button class="chip ${g === S.genre ? 'on' : ''}" data-g="${esc(g)}">${esc(genreLabel(g))}</button>`).join('')}</div>
+    <div class="sec-head"><h2>${esc(T('trending_week'))}${S.genre !== 'All' ? ' · ' + esc(S.genre) : ''}</h2><button class="link" id="playTrend">${esc(T('play_all'))}</button></div>
     <div id="trend"><div class="spinner"></div></div>
-    <h2>Popular playlists</h2>
+    <h2>${esc(T('popular_playlists'))}</h2>
     <div id="pls"><div class="spinner"></div></div>
-    <div class="sec-head"><h2>Rising underground</h2><button class="link" id="playUnder">Play all</button></div>
+    <div class="sec-head"><h2>${esc(T('rising_underground'))}</h2><button class="link" id="playUnder">${esc(T('play_all'))}</button></div>
     <div id="under"><div class="spinner"></div></div>
-    <p class="muted small" style="margin-top:28px">Streaming catalogue from Audius, a free platform where independent artists share their music. Add your own files in Your Library.</p>`;
-  $$('#recent [data-rec]', V).forEach(b => b.onclick = () => playList(recent, +b.dataset.rec, 'Recently played'));
+    <p class="muted small" style="margin-top:28px">${esc(T('home_note'))}</p>`;
+  $$('#recent [data-rec]', V).forEach(b => b.onclick = () => playList(recent, +b.dataset.rec, T('recently_played')));
   $$('#genres [data-g]', V).forEach(b => b.onclick = () => { S.genre = b.dataset.g; refresh(); });
   const g = S.genre === 'All' ? {} : { genre: S.genre };
   const k = S.genre;
   const load = async (key, fn) => { if (!homeCache[key]) homeCache[key] = fn().catch(e => { delete homeCache[key]; throw e; }); return homeCache[key]; };
+  const lc = LANG_CONTENT[lang()];
+  if (lc.picks.length) load('picks:' + lang(), async () => {
+    const res = await Promise.allSettled(lc.picks.map(q => Audius.get('/tracks/search', { query: q })));
+    const lists = res.filter(r => r.status === 'fulfilled').map(r => Audius.tracks(r.value));
+    if (!lists.length) throw new Error('no results');
+    const out = [], seen = new Set();
+    for (let i = 0; out.length < 30 && lists.some(l => l[i]); i++) for (const l of lists) { const t = l[i]; if (t && !seen.has(t.id)) { seen.add(t.id); out.push(t); } }
+    return out;
+  }).then(ts => {
+    const el = $('#picks'); if (!el) return;
+    el.innerHTML = trackListHTML(ts.slice(0, 8), { from: T('lang_picks'), empty: T('no_songs') });
+    $('#playPicks').onclick = () => ts.length && playList(ts, 0, T('lang_picks'));
+  }).catch(() => { const el = $('#picks'); if (el) el.innerHTML = offlineMsg(); });
   load('trend:' + k, async () => Audius.tracks(await Audius.get('/tracks/trending', { time: 'week', ...g })).slice(0, 30))
     .then(ts => {
       const el = $('#trend'); if (!el) return;
-      el.innerHTML = trackListHTML(ts.slice(0, 10), { numbered: true, from: 'Trending', empty: 'No tracks found for this genre' });
-      $('#playTrend').onclick = () => ts.length && playList(ts, 0, 'Trending');
+      el.innerHTML = trackListHTML(ts.slice(0, 10), { numbered: true, from: T('trending'), empty: T('no_tracks_genre') });
+      $('#playTrend').onclick = () => ts.length && playList(ts, 0, T('trending'));
     }).catch(() => { const el = $('#trend'); if (el) el.innerHTML = offlineMsg(); });
   load('pls', async () => (await Audius.get('/playlists/trending', { time: 'week' }) || []).map(p => Audius.playlist(p)).slice(0, 15))
     .then(ps => {
       const el = $('#pls'); if (!el) return;
-      el.innerHTML = ps.length ? `<div class="hscroll">${ps.map(p => `<button class="card" data-pl="${esc(p.id)}">${rawArt(p.art, p.name)}<div class="ct">${esc(p.name)}</div><div class="cs">${esc(p.owner)}</div></button>`).join('')}</div>` : '<div class="empty">No playlists right now</div>';
+      el.innerHTML = ps.length ? `<div class="hscroll">${ps.map(p => `<button class="card" data-pl="${esc(p.id)}">${rawArt(p.art, p.name)}<div class="ct">${esc(p.name)}</div><div class="cs">${esc(p.owner)}</div></button>`).join('')}</div>` : `<div class="empty">${esc(T('no_playlists'))}</div>`;
       $$('[data-pl]', el).forEach(b => b.onclick = () => go({ name: 'apl', pl: ps.find(p => p.id === b.dataset.pl) }));
     }).catch(() => { const el = $('#pls'); if (el) el.innerHTML = ''; });
   load('under', async () => Audius.tracks(await Audius.get('/tracks/trending/underground', {})).slice(0, 30))
     .then(ts => {
       const el = $('#under'); if (!el) return;
-      el.innerHTML = trackListHTML(ts.slice(0, 8), { from: 'Rising underground' });
-      $('#playUnder').onclick = () => ts.length && playList(ts, 0, 'Rising underground');
+      el.innerHTML = trackListHTML(ts.slice(0, 8), { from: T('rising_underground') });
+      $('#playUnder').onclick = () => ts.length && playList(ts, 0, T('rising_underground'));
     }).catch(() => { const el = $('#under'); if (el) el.innerHTML = ''; });
 }
-function offlineMsg() { return `<div class="empty">Couldn't reach the music catalogue. Check your connection, then pull down or tap a genre to retry.<br><br>Your own files still play offline.</div>`; }
+function offlineMsg() { return `<div class="empty">${T('offline_music')}</div>`; }
 
 /* ---- Search ---- */
 const SR = { q: '', tracks: null, pls: null, loading: false };
 let searchT;
 function viewSearch(V) {
-  setTitle('Search');
-  V.innerHTML = `<div class="search-box">${ICON.search}<input id="q" type="search" placeholder="Songs, artists, playlists" value="${esc(SR.q)}" autocomplete="off" enterkeyhint="search"></div><div id="sres"></div>`;
+  setTitle(T('search_title'));
+  V.innerHTML = `<div class="search-box">${ICON.search}<input id="q" type="search" placeholder="${esc(T('search_ph'))}" value="${esc(SR.q)}" autocomplete="off" enterkeyhint="search"></div><div id="sres"></div>`;
   const q = $('#q', V);
   q.oninput = () => { SR.q = q.value; clearTimeout(searchT); searchT = setTimeout(doSearch, 380); };
   q.onkeydown = e => { if (e.key === 'Enter') { clearTimeout(searchT); doSearch(); q.blur(); } };
@@ -791,75 +1026,85 @@ function drawSearch() {
   const el = $('#sres'); if (!el) return;
   const q = SR.q.trim().toLowerCase();
   if (!q) {
-    el.innerHTML = `<h2>Browse genres</h2><div class="chips" style="flex-wrap:wrap;margin:0;padding:0">${GENRES.slice(1).map(g => `<button class="chip" data-g="${esc(g)}">${esc(g)}</button>`).join('')}</div>`;
+    el.innerHTML = `<h2>${esc(T('browse_genres'))}</h2><div class="chips" style="flex-wrap:wrap;margin:0;padding:0">${genreList().slice(1).map(g => `<button class="chip" data-g="${esc(g)}">${esc(g)}</button>`).join('')}</div>`;
     $$('[data-g]', el).forEach(b => b.onclick = () => { S.genre = b.dataset.g; setTab('home'); });
     return;
   }
   const mine = [...S.local, ...S.liked].filter((t, i, a) => a.findIndex(x => x.id === t.id) === i)
     .filter(t => (t.title + ' ' + t.artist + ' ' + (t.album || '')).toLowerCase().includes(q)).slice(0, 10);
   let html = '';
-  if (mine.length) html += `<h2>In your library</h2>` + trackListHTML(mine, { from: 'Your library' });
+  if (mine.length) html += `<h2>${esc(T('in_library'))}</h2>` + trackListHTML(mine, { from: T('your_library') });
   if (SR.loading) html += '<div class="spinner"></div>';
   else if (SR.tracks === 'err') html += offlineMsg();
   else if (SR.tracks) {
-    html += `<h2>Songs</h2>` + trackListHTML(SR.tracks.slice(0, 30), { from: 'Search', empty: 'No songs found' });
-    if (SR.pls && SR.pls.length) html += `<h2>Playlists</h2><div class="hscroll">${SR.pls.map(p => `<button class="card" data-pl="${esc(p.id)}">${rawArt(p.art, p.name)}<div class="ct">${esc(p.name)}</div><div class="cs">${esc(p.owner)}</div></button>`).join('')}</div>`;
+    html += `<h2>${esc(T('songs'))}</h2>` + trackListHTML(SR.tracks.slice(0, 30), { from: T('search_title'), empty: T('no_songs') });
+    if (SR.pls && SR.pls.length) html += `<h2>${esc(T('playlists'))}</h2><div class="hscroll">${SR.pls.map(p => `<button class="card" data-pl="${esc(p.id)}">${rawArt(p.art, p.name)}<div class="ct">${esc(p.name)}</div><div class="cs">${esc(p.owner)}</div></button>`).join('')}</div>`;
   }
   el.innerHTML = html;
   $$('[data-pl]', el).forEach(b => b.onclick = () => go({ name: 'apl', pl: SR.pls.find(p => p.id === b.dataset.pl) }));
 }
 
-/* ---- Radio (Italian stations first; other countries can be added to RADIO_COUNTRY later) ---- */
-const RADIO_COUNTRY = { code: 'IT', flag: '🇮🇹', label: 'Italian stations' };
-const RADIO_TAGS = [['All', ''], ['Pop', 'pop'], ['Hits', 'hits'], ['Italian music', 'italian music'], ['Rock', 'rock'], ['News', 'news'], ['Talk', 'talk'], ['Dance', 'dance'], ['Oldies', 'oldies'], ['80s', '80s'], ['Jazz', 'jazz'], ['Classical', 'classical'], ['Local', 'local'], ['Sport', 'sport']];
+/* ---- Radio: countries follow the chosen language ---- */
+const RADIO_TAGS = ['', 'NATIVE', 'pop', 'hits', 'rock', 'news', 'talk', 'dance', 'oldies', '80s', 'jazz', 'classical', 'local', 'sport'];
+const radioTagLabel = v => v === '' ? T('rt_all') : v === 'NATIVE' ? T('rt_native') : T('rt_' + v);
 const RS = { q: '', tag: '' };
 const radioCache = {};
+function radioCountry() {
+  const list = LANG_CONTENT[lang()].countries, pick = (S.settings.radioCountry || {})[lang()];
+  return list.includes(pick) ? pick : list[0];
+}
 function viewRadio(V) {
-  setTitle('Radio');
-  const favs = S.stations;
+  setTitle(T('radio_title'));
+  const favs = S.stations, cc = radioCountry(), countries = LANG_CONTENT[lang()].countries;
+  const tags = RADIO_TAGS.filter(v => v !== 'NATIVE' || LANG_CONTENT[lang()].nativeTag);
   V.innerHTML = `
-    <div class="muted small" style="margin-top:-4px">${RADIO_COUNTRY.flag} ${RADIO_COUNTRY.label}</div>
-    <div class="search-box" style="margin-top:12px">${ICON.search}<input id="rq" type="search" placeholder="Search stations, e.g. RTL, Rai, Deejay" value="${esc(RS.q)}" autocomplete="off" enterkeyhint="search"></div>
-    ${favs.length ? `<h2>Your stations</h2><div class="hscroll">${favs.map((t, i) => `<button class="card" data-fav="${i}">${artHTML(t)}<div class="ct">${esc(t.title)}</div><div class="cs">${esc(t.artist)}</div></button>`).join('')}</div>` : ''}
-    <h2 id="rHead">${RS.q ? 'Results' : 'Popular in Italy'}</h2>
-    <div class="chips ${RS.q ? 'hidden' : ''}" id="rTags">${RADIO_TAGS.map(([l, v]) => `<button class="chip ${v === RS.tag ? 'on' : ''}" data-rt="${esc(v)}">${esc(l)}</button>`).join('')}</div>
+    ${countries.length > 1
+      ? `<div class="chips" id="rCountries">${countries.map(c => `<button class="chip ${c === cc ? 'on' : ''}" data-cc="${c}">${flagOf(c)} ${esc(countryName(c))}</button>`).join('')}</div>`
+      : `<div class="muted small" style="margin-top:-4px">${flagOf(cc)} ${esc(T('radio_stations_of', { x: countryName(cc) }))}</div>`}
+    <div class="search-box" style="margin-top:12px">${ICON.search}<input id="rq" type="search" placeholder="${esc(T('radio_search_ph', { x: countryName(cc) }))}" value="${esc(RS.q)}" autocomplete="off" enterkeyhint="search"></div>
+    ${favs.length ? `<h2>${esc(T('your_stations'))}</h2><div class="hscroll">${favs.map((t, i) => `<button class="card" data-fav="${i}">${artHTML(t)}<div class="ct">${esc(t.title)}</div><div class="cs">${esc(t.artist)}</div></button>`).join('')}</div>` : ''}
+    <h2 id="rHead">${esc(RS.q ? T('results') : T('popular_in', { x: countryName(cc) }))}</h2>
+    <div class="chips ${RS.q ? 'hidden' : ''}" id="rTags">${tags.map(v => `<button class="chip ${v === RS.tag ? 'on' : ''}" data-rt="${esc(v)}">${esc(radioTagLabel(v))}</button>`).join('')}</div>
     <div id="rlist"><div class="spinner"></div></div>
-    <p class="muted small" style="margin-top:24px">Live stations from the Radio Browser directory. Radio stations play their own ads and presenters, which Tempo can't remove. Tap the heart on a station to add it to Your stations.</p>`;
-  $$('[data-fav]', V).forEach(b => b.onclick = () => playList(favs, +b.dataset.fav, 'Your stations'));
+    <p class="muted small" style="margin-top:24px">${esc(T('radio_note'))}</p>`;
+  $$('[data-fav]', V).forEach(b => b.onclick = () => playList(favs, +b.dataset.fav, T('your_stations')));
+  $$('[data-cc]', V).forEach(b => b.onclick = () => { S.settings.radioCountry = Object.assign({}, S.settings.radioCountry, { [lang()]: b.dataset.cc }); save.settings(); RS.tag = ''; refresh(); });
   $$('[data-rt]', V).forEach(b => b.onclick = () => { RS.tag = b.dataset.rt; $$('[data-rt]', V).forEach(x => x.classList.toggle('on', x === b)); drawRadioList(); });
   const q = $('#rq', V); let tmr;
-  const apply = () => { RS.q = q.value.trim(); $('#rHead').textContent = RS.q ? 'Results' : 'Popular in Italy'; $('#rTags').classList.toggle('hidden', !!RS.q); drawRadioList(); };
+  const apply = () => { RS.q = q.value.trim(); $('#rHead').textContent = RS.q ? T('results') : T('popular_in', { x: countryName(radioCountry()) }); $('#rTags').classList.toggle('hidden', !!RS.q); drawRadioList(); };
   q.oninput = () => { clearTimeout(tmr); tmr = setTimeout(apply, 450); };
   q.onkeydown = e => { if (e.key === 'Enter') { clearTimeout(tmr); apply(); q.blur(); } };
   drawRadioList();
 }
 async function drawRadioList() {
   const el = $('#rlist'); if (!el) return;
-  const key = RS.q ? 'q:' + RS.q.toLowerCase() : 't:' + RS.tag;
+  const cc = radioCountry();
+  const tag = RS.tag === 'NATIVE' ? LANG_CONTENT[lang()].nativeTag : RS.tag;
+  const keyOf = () => radioCountry() + '|' + (RS.q ? 'q:' + RS.q.toLowerCase() : 't:' + (RS.tag === 'NATIVE' ? LANG_CONTENT[lang()].nativeTag : RS.tag));
+  const key = keyOf();
   el.innerHTML = '<div class="spinner"></div>';
-  const params = { countrycode: RADIO_COUNTRY.code, hidebroken: 'true', order: 'clickcount', reverse: 'true', limit: '150' };
-  if (RS.q) params.name = RS.q; else if (RS.tag) params.tag = RS.tag;
+  const params = { countrycode: cc, hidebroken: 'true', order: 'clickcount', reverse: 'true', limit: '150' };
+  if (RS.q) params.name = RS.q; else if (tag) params.tag = tag;
   if (!radioCache[key]) radioCache[key] = Radio.get('/json/stations/search', params).then(a => Radio.list(a)).catch(e => { delete radioCache[key]; throw e; });
   try {
     const list = (await radioCache[key]).slice(0, 60);
-    const now = RS.q ? 'q:' + RS.q.toLowerCase() : 't:' + RS.tag;
-    if (now !== key || !$('#rlist')) return;
-    $('#rlist').innerHTML = trackListHTML(list, { from: 'Radio', empty: RS.q ? 'No Italian stations found with that name' : 'No stations found for this category' });
+    if (keyOf() !== key || !$('#rlist')) return;
+    $('#rlist').innerHTML = trackListHTML(list, { from: T('radio_title') + ' · ' + countryName(cc), empty: RS.q ? T('no_stations_name') : T('no_stations_cat') });
   } catch {
-    const e2 = $('#rlist'); if (e2) e2.innerHTML = `<div class="empty">Couldn't reach the radio directory. Check your connection and try again.</div>`;
+    const e2 = $('#rlist'); if (e2) e2.innerHTML = `<div class="empty">${esc(T('radio_offline'))}</div>`;
   }
 }
 
 /* ---- Library ---- */
 function viewLibrary(V) {
-  setTitle('Your Library');
+  setTitle(T('library_title'));
   V.innerHTML = `
-    <div class="btn-row"><button class="btn primary" id="newPl">${ICON.plus}New playlist</button><button class="btn" id="impBtn">${ICON.import}Add your music files</button></div>
-    <button class="lib-tile" id="likedTile"><div class="art liked-art"></div><div><div class="t">Liked songs</div><div class="muted small">${S.liked.length} song${S.liked.length === 1 ? '' : 's'}</div></div></button>
-    <button class="lib-tile" id="stTile"><div class="art st-art" style="--c1:#2b7bff;--c2:#0d2350">${ICON.radio}</div><div><div class="t">Your stations</div><div class="muted small">${S.stations.length} radio station${S.stations.length === 1 ? '' : 's'}</div></div></button>
-    <button class="lib-tile" id="filesTile"><div class="art files-art"></div><div><div class="t">Your files</div><div class="muted small">${S.local.length} song${S.local.length === 1 ? '' : 's'} · plays offline</div></div></button>
-    ${S.playlists.map(p => `<button class="lib-tile" data-pid="${p.id}">${p.tracks[0] ? artHTML(p.tracks[0]) : rawArt(null, p.name)}<div><div class="t">${esc(p.name)}</div><div class="muted small">Playlist · ${p.tracks.length} song${p.tracks.length === 1 ? '' : 's'}</div></div></button>`).join('')}
-    ${!S.playlists.length ? '<p class="muted small" style="margin-top:16px">Create a playlist, then add songs from any song\'s ⋯ menu.</p>' : ''}`;
+    <div class="btn-row"><button class="btn primary" id="newPl">${ICON.plus}${esc(T('new_playlist'))}</button><button class="btn" id="impBtn">${ICON.import}${esc(T('add_music_files'))}</button></div>
+    <button class="lib-tile" id="likedTile"><div class="art liked-art"></div><div><div class="t">${esc(T('liked_songs'))}</div><div class="muted small">${nSongs(S.liked.length)}</div></div></button>
+    <button class="lib-tile" id="stTile"><div class="art st-art" style="--c1:#2b7bff;--c2:#0d2350">${ICON.radio}</div><div><div class="t">${esc(T('your_stations'))}</div><div class="muted small">${nStations(S.stations.length)}</div></div></button>
+    <button class="lib-tile" id="filesTile"><div class="art files-art"></div><div><div class="t">${esc(T('your_files'))}</div><div class="muted small">${nSongs(S.local.length)} · ${esc(T('plays_offline'))}</div></div></button>
+    ${S.playlists.map(p => `<button class="lib-tile" data-pid="${p.id}">${p.tracks[0] ? artHTML(p.tracks[0]) : rawArt(null, p.name)}<div><div class="t">${esc(p.name)}</div><div class="muted small">${esc(T('playlist_word'))} · ${nSongs(p.tracks.length)}</div></div></button>`).join('')}
+    ${!S.playlists.length ? `<p class="muted small" style="margin-top:16px">${esc(T('create_hint'))}</p>` : ''}`;
   $('#newPl').onclick = async () => { const p = await newPlaylist(); if (p) go({ name: 'playlist', id: p.id }); };
   $('#impBtn').onclick = () => $('#fileInput').click();
   $('#likedTile').onclick = () => go({ name: 'liked' });
@@ -868,9 +1113,9 @@ function viewLibrary(V) {
   $$('[data-pid]', V).forEach(b => b.onclick = () => go({ name: 'playlist', id: b.dataset.pid }));
 }
 function heroHTML(art, title, sub) { return `<div class="hero">${art}<div><div class="ht">${esc(title)}</div><div class="muted small" style="margin-top:6px">${sub}</div></div></div>`; }
-function totalDur(ts) { const s = ts.reduce((a, t) => a + (t.duration || 0), 0); const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h} hr ${m} min` : `${m} min`; }
+function totalDur(ts) { const s = ts.reduce((a, t) => a + (t.duration || 0), 0); const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h} ${T('hr')} ${m} ${T('min')}` : `${m} ${T('min')}`; }
 function playButtons(ts, from, extra = '') {
-  return `<div class="btn-row"><button class="round-play" data-act="play" aria-label="Play">${ICON.play}</button><button class="btn" data-act="shuffle">${ICON.shuffle}Shuffle</button>${extra}</div>`;
+  return `<div class="btn-row"><button class="round-play" data-act="play" aria-label="Play">${ICON.play}</button><button class="btn" data-act="shuffle">${ICON.shuffle}${esc(T('shuffle'))}</button>${extra}</div>`;
 }
 function wirePlayButtons(V, ts, from) {
   const p = $('[data-act=play]', V), s = $('[data-act=shuffle]', V);
@@ -878,27 +1123,27 @@ function wirePlayButtons(V, ts, from) {
   if (s) s.onclick = () => ts.length && playList(ts, Math.floor(Math.random() * ts.length), from, true);
 }
 function viewLiked(V) {
-  setTitle('Liked songs');
+  setTitle(T('liked_songs'));
   const ts = S.liked.slice();
-  V.innerHTML = heroHTML('<div class="art liked-art"></div>', 'Liked songs', `${ts.length} songs${ts.length ? ' · ' + totalDur(ts) : ''}`) + playButtons(ts) + trackListHTML(ts, { from: 'Liked songs', empty: 'Tap the heart on any song to save it here' });
-  wirePlayButtons(V, ts, 'Liked songs');
+  V.innerHTML = heroHTML('<div class="art liked-art"></div>', T('liked_songs'), `${nSongs(ts.length)}${ts.length ? ' · ' + totalDur(ts) : ''}`) + playButtons(ts) + trackListHTML(ts, { from: T('liked_songs'), empty: T('liked_empty') });
+  wirePlayButtons(V, ts, T('liked_songs'));
 }
 function viewFiles(V) {
-  setTitle('Your files');
+  setTitle(T('your_files'));
   const ts = S.local.slice();
-  V.innerHTML = heroHTML('<div class="art files-art"></div>', 'Your files', `${ts.length} songs${ts.length ? ' · ' + totalDur(ts) : ''} · stored on this device`) +
-    playButtons(ts, 'Your files', `<button class="btn" id="imp2">${ICON.import}Add files</button>`) +
-    trackListHTML(ts, { from: 'Your files', ctx: 'files', empty: 'Add MP3, FLAC, M4A, WAV or OGG files from your phone. They play offline, and lyrics work well for well-known songs.' });
-  wirePlayButtons(V, ts, 'Your files');
+  V.innerHTML = heroHTML('<div class="art files-art"></div>', T('your_files'), `${nSongs(ts.length)}${ts.length ? ' · ' + totalDur(ts) : ''} · ${esc(T('stored_on_device'))}`) +
+    playButtons(ts, T('your_files'), `<button class="btn" id="imp2">${ICON.import}${esc(T('add_files'))}</button>`) +
+    trackListHTML(ts, { from: T('your_files'), ctx: 'files', empty: T('files_empty') });
+  wirePlayButtons(V, ts, T('your_files'));
   $('#imp2').onclick = () => $('#fileInput').click();
 }
 function viewPlaylist(V) {
   const p = S.playlists.find(x => x.id === route.id);
   if (!p) return back();
   setTitle(p.name);
-  V.innerHTML = heroHTML(p.tracks[0] ? artHTML(p.tracks[0]) : rawArt(null, p.name), p.name, `${p.tracks.length} songs${p.tracks.length ? ' · ' + totalDur(p.tracks) : ''}`) +
+  V.innerHTML = heroHTML(p.tracks[0] ? artHTML(p.tracks[0]) : rawArt(null, p.name), p.name, `${nSongs(p.tracks.length)}${p.tracks.length ? ' · ' + totalDur(p.tracks) : ''}`) +
     playButtons(p.tracks, p.name, `<button class="icon-btn" id="plMore" aria-label="Playlist options">${ICON.more}</button>`) +
-    trackListHTML(p.tracks, { from: p.name, playlist: p.id, empty: 'Search for songs and use ⋯ → Add to playlist' });
+    trackListHTML(p.tracks, { from: p.name, playlist: p.id, empty: T('playlist_empty') });
   wirePlayButtons(V, p.tracks, p.name);
   $('#plMore').onclick = () => playlistMenu(p);
 }
@@ -909,40 +1154,64 @@ async function viewAudiusPlaylist(V) {
   try {
     const ts = Audius.tracks(await Audius.get(`/playlists/${encodeURIComponent(pl.id)}/tracks`, {}));
     if (route.pl !== pl) return;
-    $('#aplBody').innerHTML = playButtons(ts, pl.name, `<button class="btn" id="savePl">${ICON.plus}Save to library</button>`) + trackListHTML(ts, { from: pl.name, empty: 'This playlist has no playable songs' });
+    $('#aplBody').innerHTML = playButtons(ts, pl.name, `<button class="btn" id="savePl">${ICON.plus}${esc(T('save_to_library'))}</button>`) + trackListHTML(ts, { from: pl.name, empty: T('apl_empty') });
     wirePlayButtons(V, ts, pl.name);
     $('#savePl').onclick = () => {
       const p = { id: uid(), name: pl.name, tracks: ts.map(slim), created: Date.now() };
-      S.playlists.unshift(p); save.playlists(); toast('Saved to Your Library');
+      S.playlists.unshift(p); save.playlists(); toast(T('saved_to_library'));
     };
   } catch { const b = $('#aplBody'); if (b) b.innerHTML = offlineMsg(); }
 }
 
 /* ---- Settings ---- */
 function viewSettings(V) {
-  setTitle('Settings');
+  setTitle(T('settings'));
+  const a = (u, n) => `<a href="${u}" target="_blank" rel="noopener" style="color:inherit">${n}</a>`;
   V.innerHTML = `
     <div class="card-box">
-      <label class="toggle"><span><b>Keep the music going</b><br><span class="muted small">When your queue ends, continue with similar songs</span></span><input type="checkbox" id="setAuto" ${S.settings.autoplay ? 'checked' : ''}></label>
-      <label class="field" style="margin-top:14px"><span>Audius API key (optional). Only needed if Audius ever starts requiring one; free from audius.co/settings → Developer apps</span><input type="text" id="setKey" spellcheck="false" autocapitalize="off" value="${esc(S.settings.apiKey)}" placeholder="Leave empty" autocomplete="off"></label>
+      <b>${esc(T('language'))}</b>
+      <div class="chips" style="flex-wrap:wrap;margin:10px 0 0;padding:0">${LANGS.map(([c, f, n]) => `<button class="chip ${c === lang() ? 'on' : ''}" data-lang="${c}">${f} ${n}</button>`).join('')}</div>
     </div>
     <div class="card-box">
-      <b>Backup</b>
-      <p class="muted small">Playlists, liked songs and your radio stations are saved on this device only. Export a backup to move them to another phone. Your own music files aren't included.</p>
-      <div class="btn-row"><button class="btn" id="exp">${ICON.save}Export backup</button><button class="btn" id="imp">${ICON.import}Restore backup</button></div>
-      <div class="btn-row"><button class="btn" id="clrHist">Clear recently played</button></div>
+      <label class="toggle"><span><b>${esc(T('keep_going'))}</b><br><span class="muted small">${esc(T('keep_going_sub'))}</span></span><input type="checkbox" id="setAuto" ${S.settings.autoplay ? 'checked' : ''}></label>
+      <label class="field" style="margin-top:14px"><span>${esc(T('api_key_label'))}</span><input type="text" id="setKey" spellcheck="false" autocapitalize="off" value="${esc(S.settings.apiKey)}" placeholder="${esc(T('leave_empty'))}" autocomplete="off"></label>
+    </div>
+    <div class="card-box">
+      <b>${esc(T('backup'))}</b>
+      <p class="muted small">${esc(T('backup_note'))}</p>
+      <div class="btn-row"><button class="btn" id="exp">${ICON.save}${esc(T('export_backup'))}</button><button class="btn" id="imp">${ICON.import}${esc(T('restore_backup'))}</button></div>
+      <div class="btn-row"><button class="btn" id="clrHist">${esc(T('clear_recent'))}</button></div>
       <p class="muted small" id="storage"></p>
     </div>
     <div class="card-box small muted">
-      <b style="color:var(--text)">About Tempo</b><br>
-      No ads, no subscriptions. Streaming music comes from <a href="https://audius.co" target="_blank" rel="noopener" style="color:inherit">Audius</a>, where artists share their music for free; every song credits its artist and links back to them. Lyrics are community-sourced from <a href="https://lrclib.net" target="_blank" rel="noopener" style="color:inherit">LRCLIB</a>.
+      <b style="color:var(--text)">${esc(T('about_title'))}</b><br>
+      ${esc(T('about_text')).replace('{audius}', a('https://audius.co', 'Audius')).replace('{lrclib}', a('https://lrclib.net', 'LRCLIB')).replace('{rb}', a('https://www.radio-browser.info', 'Radio Browser'))}
     </div>`;
+  $$('[data-lang]', V).forEach(b => b.onclick = () => setLang(b.dataset.lang));
   $('#setAuto').onchange = e => { S.settings.autoplay = e.target.checked; save.settings(); };
-  $('#setKey').onchange = e => { S.settings.apiKey = e.target.value.trim(); save.settings(); Audius.base = null; for (const k in homeCache) delete homeCache[k]; toast('Saved'); };
+  $('#setKey').onchange = e => { S.settings.apiKey = e.target.value.trim(); save.settings(); Audius.base = null; for (const k in homeCache) delete homeCache[k]; toast(T('saved')); };
   $('#exp').onclick = exportBackup;
   $('#imp').onclick = () => $('#backupInput').click();
-  $('#clrHist').onclick = () => { S.history = []; save.history(); toast('Cleared'); };
-  if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => { const el = $('#storage'); if (el && e.usage != null) el.textContent = `Storage used on this device: ${(e.usage / 1048576).toFixed(1)} MB`; });
+  $('#clrHist').onclick = () => { S.history = []; save.history(); toast(T('cleared')); };
+  if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => { const el = $('#storage'); if (el && e.usage != null) el.textContent = T('storage_used', { x: (e.usage / 1048576).toFixed(1) }); });
+}
+function langMenu() {
+  const b = openSheet(`<h3>${esc(T('language'))}</h3>` + LANGS.map(([c, f, n]) => `<button class="opt lang-opt ${c === lang() ? 'on' : ''}" data-l="${c}"><span class="fl">${f}</span>${n}</button>`).join(''));
+  $$('[data-l]', b).forEach(btn => btn.onclick = () => { closeSheet(); setLang(btn.dataset.l); });
+}
+function applyStatic() {
+  document.documentElement.lang = lang();
+  $$('[data-t]').forEach(el => el.textContent = T(el.dataset.t));
+  $('#langBtn').textContent = (LANGS.find(l => l[0] === lang()) || LANGS[0])[1];
+}
+function setLang(l) {
+  if (!I18N[l]) return;
+  S.settings.lang = l; save.settings();
+  RS.q = ''; RS.tag = '';
+  if (!genreList().includes(S.genre)) S.genre = 'All';
+  applyStatic(); refresh();
+  if (cur()) { updateNowPlaying(); if (player.classList.contains('open')) drawPane(); }
+  toast((LANGS.find(x => x[0] === l) || [])[2] || l);
 }
 function exportBackup() {
   const data = { app: 'Tempo', version: 1, exported: new Date().toISOString(), playlists: S.playlists, liked: S.liked, history: S.history, stations: S.stations };
@@ -960,8 +1229,8 @@ $('#backupInput').onchange = async e => {
     const lk = new Set(S.liked.map(t => t.id));
     for (const t of d.liked) if (!lk.has(t.id)) S.liked.push(t);
     if (Array.isArray(d.stations)) { const st = new Set(S.stations.map(t => t.id)); for (const t of d.stations) if (!st.has(t.id)) S.stations.push(t); save.stations(); }
-    save.playlists(); save.liked(); toast('Backup restored'); refresh();
-  } catch { toast("That file isn't a Tempo backup"); }
+    save.playlists(); save.liked(); toast(T('backup_restored')); refresh();
+  } catch { toast(T('not_backup')); }
 };
 $('#fileInput').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) importFiles(fs); };
 
@@ -973,9 +1242,9 @@ function openSheet(html) {
 }
 function closeSheet() { $('#sheet').classList.add('hidden'); }
 $('#sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
-function ask(title, value = '', okLabel = 'Save') {
+function ask(title, value = '', okLabel = T('save')) {
   return new Promise(res => {
-    const b = openSheet(`<h3>${esc(title)}</h3><input type="text" id="askIn" value="${esc(value)}" maxlength="80"><div class="actions"><button class="btn" id="askNo">Cancel</button><button class="btn primary" id="askOk">${esc(okLabel)}</button></div>`);
+    const b = openSheet(`<h3>${esc(title)}</h3><input type="text" id="askIn" value="${esc(value)}" maxlength="80"><div class="actions"><button class="btn" id="askNo">${esc(T('cancel'))}</button><button class="btn primary" id="askOk">${esc(okLabel)}</button></div>`);
     const i = $('#askIn', b); setTimeout(() => { i.focus(); i.select(); }, 60);
     const done = v => { closeSheet(); res(v); };
     $('#askNo', b).onclick = () => done(null);
@@ -984,11 +1253,11 @@ function ask(title, value = '', okLabel = 'Save') {
   });
 }
 async function newPlaylist(firstTrack) {
-  const name = await ask('New playlist', `My playlist #${S.playlists.length + 1}`, 'Create');
+  const name = await ask(T('new_playlist'), T('my_playlist', { n: S.playlists.length + 1 }), T('create'));
   if (!name) return null;
   const p = { id: uid(), name, tracks: firstTrack ? [slim(firstTrack)] : [], created: Date.now() };
   S.playlists.unshift(p); save.playlists();
-  toast(firstTrack ? `Added to ${name}` : `Created ${name}`);
+  toast(firstTrack ? T('added_to', { x: name }) : T('created', { x: name }));
   if (!firstTrack) return p;
   refresh(); return p;
 }
@@ -996,74 +1265,74 @@ const isLiked = t => !!t && (isRadio(t) ? S.stations : S.liked).some(x => x.id =
 function toggleLike(t) {
   if (!t) return;
   if (isRadio(t)) {
-    if (isLiked(t)) { S.stations = S.stations.filter(x => x.id !== t.id); toast('Removed from Your stations'); }
-    else { S.stations.unshift(slim(t)); toast('Added to Your stations'); }
+    if (isLiked(t)) { S.stations = S.stations.filter(x => x.id !== t.id); toast(T('removed_stations')); }
+    else { S.stations.unshift(slim(t)); toast(T('added_stations')); }
     save.stations(); updateLikeButtons();
     if (route.name === 'radio') { const y = window.scrollY; const q = RS.q; refresh(); window.scrollTo(0, y); RS.q = q; }
     return;
   }
-  if (isLiked(t)) { S.liked = S.liked.filter(x => x.id !== t.id); toast('Removed from Liked songs'); }
-  else { S.liked.unshift(slim(t)); toast('Added to Liked songs'); }
+  if (isLiked(t)) { S.liked = S.liked.filter(x => x.id !== t.id); toast(T('removed_liked')); }
+  else { S.liked.unshift(slim(t)); toast(T('added_liked')); }
   save.liked(); updateLikeButtons();
   if (route.name === 'liked') refresh();
 }
 function trackMenu(t, ctx = {}, index) {
   if (isRadio(t)) return stationMenu(t);
   const opts = [
-    ['playnext', 'Play next', () => { playNext(t); }],
-    ['addq', 'Add to queue', () => { addToQueue(t); }],
-    ['list', 'Add to playlist', () => addToPlaylistMenu(t)],
-    [isLiked(t) ? 'heart' : 'heartO', isLiked(t) ? 'Remove from Liked songs' : 'Add to Liked songs', () => toggleLike(t)]
+    ['playnext', T('play_next'), () => { playNext(t); }],
+    ['addq', T('add_to_queue'), () => { addToQueue(t); }],
+    ['list', T('add_to_playlist'), () => addToPlaylistMenu(t)],
+    [isLiked(t) ? 'heart' : 'heartO', isLiked(t) ? T('remove_liked') : T('add_liked'), () => toggleLike(t)]
   ];
   if (ctx.playlist) {
     const p = S.playlists.find(x => x.id === ctx.playlist);
-    if (p && index > 0) opts.push(['up', 'Move up', () => { [p.tracks[index - 1], p.tracks[index]] = [p.tracks[index], p.tracks[index - 1]]; save.playlists(); refresh(); }]);
-    if (p && index < p.tracks.length - 1) opts.push(['dn', 'Move down', () => { [p.tracks[index + 1], p.tracks[index]] = [p.tracks[index], p.tracks[index + 1]]; save.playlists(); refresh(); }]);
-    if (p) opts.push(['trash', 'Remove from this playlist', () => { p.tracks.splice(index, 1); save.playlists(); refresh(); toast('Removed'); }, 'danger']);
+    if (p && index > 0) opts.push(['up', T('move_up'), () => { [p.tracks[index - 1], p.tracks[index]] = [p.tracks[index], p.tracks[index - 1]]; save.playlists(); refresh(); }]);
+    if (p && index < p.tracks.length - 1) opts.push(['dn', T('move_down'), () => { [p.tracks[index + 1], p.tracks[index]] = [p.tracks[index], p.tracks[index + 1]]; save.playlists(); refresh(); }]);
+    if (p) opts.push(['trash', T('remove_from_pl'), () => { p.tracks.splice(index, 1); save.playlists(); refresh(); toast(T('removed')); }, 'danger']);
   }
-  if (t.link) opts.push(['link', 'Open artist page on Audius', () => window.open(t.link, '_blank', 'noopener')]);
+  if (t.link) opts.push(['link', T('open_audius'), () => window.open(t.link, '_blank', 'noopener')]);
   if (t.src === 'local') {
-    opts.push(['edit', 'Edit title / artist', () => editLocal(t)]);
-    opts.push(['trash', 'Delete file from this device', () => deleteLocal(t), 'danger']);
+    opts.push(['edit', T('edit_title_artist'), () => editLocal(t)]);
+    opts.push(['trash', T('delete_file'), () => deleteLocal(t), 'danger']);
   }
-  const b = openSheet(`<div class="sh">${artHTML(t)}<div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="muted small">${esc(t.artist)}</div></div></div>` +
+  const b = openSheet(`<div class="sh">${artHTML(t)}<div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="muted small">${esc(showArtist(t.artist))}</div></div></div>` +
     opts.map((o, i) => `<button class="opt ${o[3] || ''}" data-o="${i}">${ICON[o[0]]}${esc(o[1])}</button>`).join(''));
   $$('[data-o]', b).forEach(btn => btn.onclick = () => { const o = opts[+btn.dataset.o]; if (o[0] !== 'list' && o[0] !== 'edit') closeSheet(); o[2](); });
 }
 function stationMenu(t) {
-  const opts = [[isLiked(t) ? 'heart' : 'heartO', isLiked(t) ? 'Remove from Your stations' : 'Add to Your stations', () => toggleLike(t)]];
-  if (t.homepage && /^https?:\/\//i.test(t.homepage)) opts.push(['link', 'Open station website', () => window.open(t.homepage, '_blank', 'noopener')]);
-  const b = openSheet(`<div class="sh">${artHTML(t)}<div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="muted small">Live radio · ${esc(t.artist)}</div></div></div>` +
+  const opts = [[isLiked(t) ? 'heart' : 'heartO', isLiked(t) ? T('remove_station') : T('add_station'), () => toggleLike(t)]];
+  if (t.homepage && /^https?:\/\//i.test(t.homepage)) opts.push(['link', T('open_website'), () => window.open(t.homepage, '_blank', 'noopener')]);
+  const b = openSheet(`<div class="sh">${artHTML(t)}<div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="muted small">${esc(T('live_radio_lbl'))} · ${esc(t.artist)}</div></div></div>` +
     opts.map((o, i) => `<button class="opt" data-o="${i}">${ICON[o[0]]}${esc(o[1])}</button>`).join(''));
   $$('[data-o]', b).forEach(btn => btn.onclick = () => { closeSheet(); opts[+btn.dataset.o][2](); });
 }
 function addToPlaylistMenu(t) {
-  const b = openSheet(`<h3>Add to playlist</h3><button class="opt" data-new>${ICON.plus}New playlist</button>` +
+  const b = openSheet(`<h3>${esc(T('add_to_playlist'))}</h3><button class="opt" data-new>${ICON.plus}${esc(T('new_playlist'))}</button>` +
     S.playlists.map(p => `<button class="opt" data-p="${p.id}">${ICON.list}${esc(p.name)} <span class="muted small">· ${p.tracks.length}</span></button>`).join(''));
   $('[data-new]', b).onclick = () => { closeSheet(); newPlaylist(t); };
   $$('[data-p]', b).forEach(btn => btn.onclick = () => {
     const p = S.playlists.find(x => x.id === btn.dataset.p);
-    if (p.tracks.some(x => x.id === t.id)) toast(`Already in ${p.name}`);
-    else { p.tracks.push(slim(t)); save.playlists(); toast(`Added to ${p.name}`); }
+    if (p.tracks.some(x => x.id === t.id)) toast(T('already_in', { x: p.name }));
+    else { p.tracks.push(slim(t)); save.playlists(); toast(T('added_to', { x: p.name })); }
     closeSheet(); if (route.name === 'library' || route.name === 'playlist') refresh();
   });
 }
 function playlistMenu(p) {
-  const b = openSheet(`<div class="sh"><div><div class="t">${esc(p.name)}</div><div class="muted small">${p.tracks.length} songs</div></div></div>
-    <button class="opt" data-a="q">${ICON.addq}Add all to queue</button>
-    <button class="opt" data-a="r">${ICON.edit}Rename</button>
-    <button class="opt danger" data-a="d">${ICON.trash}Delete playlist</button>`);
-  $('[data-a=q]', b).onclick = () => { closeSheet(); p.tracks.forEach(t => S.queue.push(t)); if (S.qi < 0 && S.queue.length) { S.qi = 0; loadTrack(true); } toast('Added to queue'); };
-  $('[data-a=r]', b).onclick = async () => { const n = await ask('Rename playlist', p.name); if (n) { p.name = n; save.playlists(); refresh(); } };
+  const b = openSheet(`<div class="sh"><div><div class="t">${esc(p.name)}</div><div class="muted small">${nSongs(p.tracks.length)}</div></div></div>
+    <button class="opt" data-a="q">${ICON.addq}${esc(T('add_all_queue'))}</button>
+    <button class="opt" data-a="r">${ICON.edit}${esc(T('rename'))}</button>
+    <button class="opt danger" data-a="d">${ICON.trash}${esc(T('delete_playlist'))}</button>`);
+  $('[data-a=q]', b).onclick = () => { closeSheet(); p.tracks.forEach(t => S.queue.push(t)); if (S.qi < 0 && S.queue.length) { S.qi = 0; loadTrack(true); } toast(T('added_queue')); };
+  $('[data-a=r]', b).onclick = async () => { const n = await ask(T('rename_playlist'), p.name); if (n) { p.name = n; save.playlists(); refresh(); } };
   $('[data-a=d]', b).onclick = async () => {
-    const b2 = openSheet(`<h3>Delete "${esc(p.name)}"?</h3><p class="muted small">This can't be undone.</p><div class="actions"><button class="btn" id="dNo">Cancel</button><button class="btn primary" id="dOk">Delete</button></div>`);
+    const b2 = openSheet(`<h3>${esc(T('delete_q', { x: p.name }))}</h3><p class="muted small">${esc(T('cant_undo'))}</p><div class="actions"><button class="btn" id="dNo">${esc(T('cancel'))}</button><button class="btn primary" id="dOk">${esc(T('delete'))}</button></div>`);
     $('#dNo', b2).onclick = closeSheet;
-    $('#dOk', b2).onclick = () => { S.playlists = S.playlists.filter(x => x.id !== p.id); save.playlists(); closeSheet(); back(); toast('Playlist deleted'); };
+    $('#dOk', b2).onclick = () => { S.playlists = S.playlists.filter(x => x.id !== p.id); save.playlists(); closeSheet(); back(); toast(T('playlist_deleted')); };
   };
 }
 async function editLocal(t) {
-  const title = await ask('Song title', t.title); if (!title) return;
-  const artist = await ask('Artist', t.artist); if (!artist) return;
+  const title = await ask(T('song_title'), t.title); if (!title) return;
+  const artist = await ask(T('artist'), t.artist); if (!artist) return;
   const m = await idb.get('meta', t.localKey); if (!m) return;
   m.title = title; m.artist = artist; await idb.put('meta', m);
   const upd = x => { if (x.id === t.id) { x.title = title; x.artist = artist; } };
@@ -1074,7 +1343,7 @@ async function editLocal(t) {
 async function deleteLocal(t) {
   await idb.del('files', t.localKey); await idb.del('meta', t.localKey);
   S.local = S.local.filter(x => x.id !== t.id); localArt.delete(t.localKey);
-  toast('File deleted'); refresh();
+  toast(T('file_deleted')); refresh();
 }
 
 /* Click delegation for track rows */
@@ -1102,8 +1371,8 @@ function playList(tracks, start = 0, from = '', shuffle = null) {
   S.from = from;
   loadTrack(true);
 }
-function playNext(t) { if (S.qi < 0) return playList([t], 0, ''); S.queue.splice(S.qi + 1, 0, t); toast('Playing next'); drawQueueIfOpen(); }
-function addToQueue(t) { if (S.qi < 0) return playList([t], 0, ''); S.queue.push(t); toast('Added to queue'); drawQueueIfOpen(); }
+function playNext(t) { if (S.qi < 0) return playList([t], 0, ''); S.queue.splice(S.qi + 1, 0, t); toast(T('playing_next')); drawQueueIfOpen(); }
+function addToQueue(t) { if (S.qi < 0) return playList([t], 0, ''); S.queue.push(t); toast(T('added_queue')); drawQueueIfOpen(); }
 
 async function loadTrack(autoplay, at = 0) {
   const t = cur(); if (!t) return;
@@ -1114,7 +1383,7 @@ async function loadTrack(autoplay, at = 0) {
       Radio.click(t.uuid);
     } else if (t.src === 'local') {
       const rec = await idb.get('files', t.localKey);
-      if (!rec) { toast(`"${t.title}" isn't on this device`); return skipAfterError(); }
+      if (!rec) { toast(T('not_on_device', { x: t.title })); return skipAfterError(); }
       localURL = URL.createObjectURL(rec.blob);
       audio.src = localURL;
     } else {
@@ -1132,7 +1401,7 @@ async function loadTrack(autoplay, at = 0) {
 }
 function skipAfterError() {
   errorRun++;
-  if (errorRun > 4) { errorRun = 0; toast("Several songs couldn't play. Check your connection."); return; }
+  if (errorRun > 4) { errorRun = 0; toast(T('several_failed')); return; }
   setTimeout(() => next(true), 700);
 }
 function addHistory(t) { S.history = [slim(t), ...S.history.filter(x => x.id !== t.id)].slice(0, 40); save.history(); }
@@ -1143,7 +1412,7 @@ function togglePlay() {
 }
 async function next(auto = false) {
   if (!S.queue.length) return;
-  if (auto && isRadio(cur())) { if (++errorRun <= 2) { setTimeout(() => loadTrack(true), 1200); } else { errorRun = 0; toast('The station stopped broadcasting'); updatePlayState(); } return; }
+  if (auto && isRadio(cur())) { if (++errorRun <= 2) { setTimeout(() => loadTrack(true), 1200); } else { errorRun = 0; toast(T('stopped_broadcasting')); updatePlayState(); } return; }
   if (auto && S.repeat === 'one') { audio.currentTime = 0; audio.play().catch(() => {}); return; }
   if (S.qi + 1 < S.queue.length) { S.qi++; return loadTrack(true); }
   if (S.repeat === 'all') { S.qi = 0; return loadTrack(true); }
@@ -1168,8 +1437,8 @@ async function extendQueue() {
   } catch { return false; }
   more = more.slice(0, 15);
   if (!more.length) return false;
-  S.queue.push(...more); S.from = 'More like this';
-  toast('Keeping the music going: more like this');
+  S.queue.push(...more); S.from = T('more_like_this');
+  toast(T('keeping_going'));
   return true;
 }
 function setShuffle(on) {
@@ -1178,11 +1447,11 @@ function setShuffle(on) {
   if (on && S.queue.length > 1) { S.original = S.queue.slice(); const rest = S.queue.filter((_, i) => i !== S.qi); S.queue = [c, ...shuffleArr(rest)]; S.qi = 0; }
   else if (!on && S.original) { const i = S.original.findIndex(x => c && x.id === c.id); if (i >= 0) { S.queue = S.original.slice(); S.qi = i; } }
   updateModes(); drawQueueIfOpen();
-  toast(on ? 'Shuffle on' : 'Shuffle off');
+  toast(on ? T('shuffle_on') : T('shuffle_off'));
 }
 function cycleRepeat() {
   S.repeat = { off: 'all', all: 'one', one: 'off' }[S.repeat]; store.set('repeat', S.repeat);
-  updateModes(); toast({ off: 'Repeat off', all: 'Repeat all', one: 'Repeat this song' }[S.repeat]);
+  updateModes(); toast(T({ off: 'repeat_off', all: 'repeat_all', one: 'repeat_one' }[S.repeat]));
 }
 
 audio.addEventListener('loadedmetadata', () => {
@@ -1194,7 +1463,7 @@ audio.addEventListener('playing', () => { errorRun = 0; updatePlayState(); });
 audio.addEventListener('play', updatePlayState);
 audio.addEventListener('pause', () => { updatePlayState(); saveSession(); });
 audio.addEventListener('ended', () => next(true));
-audio.addEventListener('error', () => { if (!audio.src || !cur()) return; if (isRadio(cur())) { toast("This station isn't available right now. Try another one."); updatePlayState(); return; } toast(`Couldn't play "${cur().title}", skipping`); skipAfterError(); });
+audio.addEventListener('error', () => { if (!audio.src || !cur()) return; if (isRadio(cur())) { toast(T('station_unavailable')); updatePlayState(); return; } toast(T('couldnt_play', { x: cur().title })); skipAfterError(); });
 let lastSave = 0;
 audio.addEventListener('timeupdate', () => {
   updateTime(); syncLyrics();
@@ -1264,11 +1533,11 @@ function updateNowPlaying() {
   if (!t) return;
   $('#miniArt').outerHTML = artHTML(t).replace('class="art ', 'id="miniArt" class="art ');
   $('#miniTitle').textContent = t.title;
-  $('#miniSub').textContent = isRadio(t) ? '● Live · ' + t.artist : t.artist; $('#miniSub').classList.remove('lyric');
+  $('#miniSub').textContent = isRadio(t) ? '● ' + T('live') + ' · ' + t.artist : showArtist(t.artist); $('#miniSub').classList.remove('lyric');
   player.classList.toggle('is-radio', isRadio(t));
-  $('#pTitle').textContent = t.title; $('#pArtist').textContent = t.artist;
-  $('#pFrom').textContent = S.from ? 'Playing from ' + S.from : 'Now playing';
-  $('#pCredit').innerHTML = isRadio(t) ? `Live radio${t.homepage && /^https?:\/\//i.test(t.homepage) ? ` · <a href="${esc(t.homepage)}" target="_blank" rel="noopener">station website</a>` : ''}` : t.src === 'audius' ? `Streaming from Audius${t.link ? ` · <a href="${esc(t.link)}" target="_blank" rel="noopener">support ${esc(t.artist)}</a>` : ''}` : 'From your files';
+  $('#pTitle').textContent = t.title; $('#pArtist').textContent = showArtist(t.artist);
+  $('#pFrom').textContent = S.from ? T('playing_from', { x: S.from }) : T('now_playing');
+  $('#pCredit').innerHTML = isRadio(t) ? `${esc(T('live_radio_lbl'))}${t.homepage && /^https?:\/\//i.test(t.homepage) ? ` · <a href="${esc(t.homepage)}" target="_blank" rel="noopener">${esc(T('station_website'))}</a>` : ''}` : t.src === 'audius' ? `${esc(T('streaming_audius'))}${t.link ? ` · <a href="${esc(t.link)}" target="_blank" rel="noopener">${esc(T('support', { x: t.artist }))}</a>` : ''}` : esc(T('from_files'));
   const h = hue(t.title + t.artist); player.style.setProperty('--pc', `hsl(${h} 35% 26%)`);
   $('#pDur').textContent = fmt(t.duration);
   setMediaSession(t); updateLikeButtons(); updatePlayState(); updateModes(); markPlaying();
@@ -1303,10 +1572,10 @@ function drawPane() {
 function drawQueueIfOpen() { if (player.classList.contains('open') && S.settings.pane === 'queue') drawQueue(); }
 function drawQueue() {
   const B = $('#pBody'), up = S.queue.slice(S.qi + 1, S.qi + 101);
-  B.innerHTML = `<div class="queue"><h3>Now playing</h3><div id="qNow"></div><h3 style="margin-top:16px">Next up${up.length ? ` · ${S.queue.length - S.qi - 1}` : ''}</h3><div id="qNext"></div></div>`;
+  B.innerHTML = `<div class="queue"><h3>${esc(T('now_playing'))}</h3><div id="qNow"></div><h3 style="margin-top:16px">${esc(T('next_up'))}${up.length ? ` · ${S.queue.length - S.qi - 1}` : ''}</h3><div id="qNext"></div></div>`;
   const now = cur();
   $('#qNow').innerHTML = `<div class="row">${artHTML(now)}<div class="meta"><div class="t on">${esc(now.title)}</div><div class="s">${esc(now.artist)}</div></div></div>`;
-  $('#qNext').innerHTML = up.length ? up.map((t, i) => `<div class="row" data-q="${S.qi + 1 + i}">${artHTML(t)}<div class="meta"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.artist)}</div></div><button class="icon-btn more" data-qx="${S.qi + 1 + i}" aria-label="Remove from queue">✕</button></div>`).join('') : `<div class="muted small">${S.settings.autoplay ? 'Similar songs will play when the queue ends.' : 'Queue is empty.'}</div>`;
+  $('#qNext').innerHTML = up.length ? up.map((t, i) => `<div class="row" data-q="${S.qi + 1 + i}">${artHTML(t)}<div class="meta"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.artist)}</div></div><button class="icon-btn more" data-qx="${S.qi + 1 + i}" aria-label="Remove from queue">✕</button></div>`).join('') : `<div class="muted small">${esc(S.settings.autoplay ? T('similar_will_play') : T('queue_empty'))}</div>`;
   $$('[data-q]', B).forEach(r => r.onclick = e => {
     const x = e.target.closest('[data-qx]');
     if (x) { S.queue.splice(+x.dataset.qx, 1); return drawQueue(); }
@@ -1327,27 +1596,27 @@ async function loadLyrics(override) {
 function drawLyrics() {
   const B = $('#pBody'), t = cur();
   lyrIdx = -1;
-  if (LYR === 'radio') { B.innerHTML = '<div class="lyr-empty"><b>Live radio</b><br><span class="small">Lyrics aren\'t available for radio stations.</span></div>'; return; }
+  if (LYR === 'radio') { B.innerHTML = `<div class="lyr-empty"><b>${esc(T('live_radio_lbl'))}</b><br><span class="small">${esc(T('lyr_radio_sub'))}</span></div>`; return; }
   if (LYR === 'loading' || LYR == null) { B.innerHTML = '<div class="spinner"></div>'; return; }
   if (LYR === 'none' || (!LYR.synced && !LYR.plain)) {
-    B.innerHTML = `<div class="lyr-empty">${LYR && LYR.instrumental ? '<b>Instrumental</b><br><span class="small">No lyrics in this song</span>' : '<b>No lyrics found</b><br><span class="small">Independent tracks often don\'t have lyrics online yet.<br>If the name is different, search for it.</span>'}<br><button class="btn" id="lyrSearch">${ICON.search}Search lyrics</button></div>`;
+    B.innerHTML = `<div class="lyr-empty">${LYR && LYR.instrumental ? `<b>${esc(T('instrumental'))}</b><br><span class="small">${esc(T('no_lyrics_in'))}</span>` : `<b>${esc(T('no_lyrics'))}</b><br><span class="small">${T('no_lyrics_sub')}</span>`}<br><button class="btn" id="lyrSearch">${ICON.search}${esc(T('search_lyrics'))}</button></div>`;
     $('#lyrSearch').onclick = () => manualLyrics(t);
     return;
   }
   if (LYR.synced) {
-    B.innerHTML = `<div class="lyrics" id="lyr">${LYR.synced.map((l, i) => `<p data-i="${i}">${esc(l.text) || '♪'}</p>`).join('')}<div class="note">Lyrics from LRCLIB · tap a line to jump to it</div></div>`;
+    B.innerHTML = `<div class="lyrics" id="lyr">${LYR.synced.map((l, i) => `<p data-i="${i}">${esc(l.text) || '♪'}</p>`).join('')}<div class="note">${esc(T('lyrics_from'))}</div></div>`;
     const box = $('#lyr');
     box.addEventListener('touchmove', () => userScrollAt = Date.now(), { passive: true });
     box.addEventListener('wheel', () => userScrollAt = Date.now(), { passive: true });
     $$('p', box).forEach(p => p.onclick = () => { const l = LYR.synced[+p.dataset.i]; if (audio.src) audio.currentTime = l.t; else pendingSeek = l.t; userScrollAt = 0; syncLyrics(true); });
     syncLyrics(true);
   } else {
-    B.innerHTML = `<div class="lyrics plain">${LYR.plain.split(/\r?\n/).map(l => `<p>${esc(l) || '&nbsp;'}</p>`).join('')}<div class="note">Lyrics from LRCLIB (not time-synced)</div></div>`;
+    B.innerHTML = `<div class="lyrics plain">${LYR.plain.split(/\r?\n/).map(l => `<p>${esc(l) || '&nbsp;'}</p>`).join('')}<div class="note">${esc(T('lyrics_plain'))}</div></div>`;
   }
 }
 async function manualLyrics(t) {
-  const title = await ask('Song title to search', cleanTitle(t.title), 'Next'); if (!title) return;
-  const artist = await ask('Artist', /^unknown artist$/i.test(t.artist) ? '' : t.artist, 'Search');
+  const title = await ask(T('song_title_search'), cleanTitle(t.title), T('next')); if (!title) return;
+  const artist = await ask(T('artist'), /^unknown artist$/i.test(t.artist) ? '' : t.artist, T('search'));
   if (artist === null) return;
   lyricCache.delete(t.id);
   await loadLyrics({ title, artist });
@@ -1362,7 +1631,7 @@ function syncLyrics(force) {
   lyrIdx = i;
   // Mini player shows the current line
   const sub = $('#miniSub'), line = i >= 0 ? L[i].text : '';
-  if (line) { sub.textContent = line; sub.classList.add('lyric'); } else if (cur()) { sub.textContent = cur().artist; sub.classList.remove('lyric'); }
+  if (line) { sub.textContent = line; sub.classList.add('lyric'); } else if (cur()) { sub.textContent = showArtist(cur().artist); sub.classList.remove('lyric'); }
   const box = $('#lyr'); if (!box || !player.classList.contains('open')) return;
   $$('p', box).forEach((p, k) => { p.classList.toggle('on', k === i); p.classList.toggle('past', k < i); });
   if (i >= 0 && Date.now() - userScrollAt > 3500) {
@@ -1373,6 +1642,8 @@ function syncLyrics(force) {
 
 /* ---------------- Start ---------------- */
 (async function init() {
+  if (!S.settings.lang) { S.settings.lang = detectLang(); save.settings(); }
+  applyStatic();
   render();
   await loadLocal();
   restoreSession();
