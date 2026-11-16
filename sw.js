@@ -1,7 +1,7 @@
 // Tempo service worker: caches the app itself so it opens offline.
 // Music streams and API calls always go to the network.
 // Bump VERSION whenever you upload a new index.html.
-const VERSION = 'tempo-v4';
+const VERSION = 'tempo-v5';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

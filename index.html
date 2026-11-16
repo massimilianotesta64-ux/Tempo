@@ -221,6 +221,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
   <div class="pbody" id="pBody"></div>
   <div class="pinfo">
     <div class="meta"><div class="t" id="pTitle"></div><div class="s" id="pArtist"></div></div>
+    <button class="icon-btn hidden" id="pAirplay" aria-label="AirPlay"></button>
     <button class="icon-btn" id="pLike" aria-label="Like"></button>
   </div>
   <div class="seek">
@@ -240,7 +241,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
 
 <div id="sheet" class="sheet-wrap hidden"><div class="sheet" id="sheetBody"></div></div>
 <div id="toast"></div>
-<audio id="audio" preload="auto" playsinline></audio>
+<audio id="audio" preload="auto" playsinline x-webkit-airplay="allow"></audio>
 <input type="file" id="fileInput" accept="audio/*,.mp3,.flac,.m4a,.aac,.wav,.ogg,.opus" multiple hidden>
 <input type="file" id="backupInput" accept="application/json,.json" hidden>
 
@@ -267,6 +268,7 @@ const store = {
 /* ---------------- Icons ---------------- */
 const ICON = {
   play: '<svg viewBox="0 0 24 24"><path d="M8 5.1v13.8a1 1 0 0 0 1.5.86l11-6.9a1 1 0 0 0 0-1.72l-11-6.9A1 1 0 0 0 8 5.1z"/></svg>',
+  airplay: '<svg viewBox="0 0 24 24"><path d="M6 22h12l-6-6zM21 3H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4v-2H3V5h18v12h-4v2h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>',
   pause: '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   next: '<svg viewBox="0 0 24 24"><path d="M5 6.2v11.6a.8.8 0 0 0 1.2.7l9-5.8a.8.8 0 0 0 0-1.4l-9-5.8a.8.8 0 0 0-1.2.7zM17 5h2v14h-2z"/></svg>',
   prev: '<svg viewBox="0 0 24 24"><path d="M19 6.2v11.6a.8.8 0 0 1-1.2.7l-9-5.8a.8.8 0 0 1 0-1.4l9-5.8a.8.8 0 0 1 1.2.7zM5 5h2v14H5z"/></svg>',
@@ -1508,6 +1510,15 @@ $('#mini').onclick = e => { if (e.target.closest('button')) return; openPlayer()
 $('#miniPlay').onclick = togglePlay;
 $('#miniLike').onclick = () => toggleLike(cur());
 $('#pLike').onclick = () => toggleLike(cur());
+// AirPlay (iPhone / iPad / Mac Safari): open the speaker list from inside Tempo
+(() => {
+  const btn = $('#pAirplay');
+  if (typeof audio.webkitShowPlaybackTargetPicker !== 'function') return;
+  btn.innerHTML = ICON.airplay;
+  btn.classList.remove('hidden');
+  btn.onclick = () => { try { audio.webkitShowPlaybackTargetPicker(); } catch {} };
+  audio.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => btn.classList.toggle('on', !!audio.webkitCurrentPlaybackTargetIsWireless));
+})();
 $('#pClose').onclick = closePlayer;
 $('#pPlay').onclick = togglePlay;
 $('#pNext').onclick = () => next();
